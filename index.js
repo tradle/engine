@@ -1,25 +1,31 @@
+'use strict'
 
 const util = require('util')
 const EventEmitter = require('events').EventEmitter
 const path = require('path')
-const extend = require('xtend')
+const extend = require('xtend/mutable')
+const reemit = require('re-emitter')
 const typeforce = require('typeforce')
 const trackchain = require('chain-tracker')
-const Blockchain = require('cb-blockr')
 const async = require('async')
+const levelup = require('levelup')
 const protocol = require('@tradle/protocol')
 const constants = require('@tradle/constants')
 const TYPE = constants.TYPE
 const ROOT_HASH = constants.ROOT_HASH
+const CUR_HASH = constants.CUR_HASH
 const indexFeed = require('./lib/index-feed')
 const utils = require('./lib/utils')
-const watchseals = require('./lib/sealwatch')
+const createSealWatcher = require('./lib/sealwatch')
 const createAddressBook = require('./lib/addressBook')
-const sealers = require('./lib/sealer')
+const createSealer = require('./lib/sealer')
+const createSender = require('./lib/sender')
 const topics = require('./lib/topics')
 const createLiveQueue = require('./lib/queue')
 const statuses = require('./lib/status')
 const types = require('./lib/types')
+const logs = require('./lib/logs')
+const noop = () => {}
 
 function Tradle (opts) {
   if (!(this instanceof Tradle)) return new Tradle (opts)
@@ -30,27 +36,34 @@ function Tradle (opts) {
     blockchain: typeforce.Object,
     identity: typeforce.Object,
     keeper: typeforce.Object,
-    keys: typeforce.Array
+    keys: typeforce.Array,
+    leveldown: types.leveldown,
+    wallet: typeforce.maybe(typeforce.Object),
+    transactor: typeforce.maybe(types.transactor)
   }, opts, true)
 
   const dir = opts.dir
-  const ixf = this._ixf = indexFeed({
-    log: path.join(dir, 'log.db'),
-    index: path.join(dir, 'index.db')
-  })
+  const dbOpts = { db: opts.leveldown }
+  const log = logs(path.join(dir, 'log.db'), dbOpts)
+  // const ixf = this._ixf = indexFeed({
+  //   changes: changes,
+  //   db: path.join(dir, 'index.db'),
+  //   leveldown: opts.leveldown
+  // })
 
-  ixf.index.add(function (row, cb) {
-    // TODO: pick and choose properties to index (as opposed to every property)
-    cb(null, row.value)
-    // switch (row.topic) {
-    // case topics.seal:
-    //   return cb(null, row.value)
-    // case topics.msg:
-    //   return cb(null, row.value)
-    // }
-  })
+  // ixf.index.add(function (row, cb) {
+  //   // TODO: pick and choose properties to index (as opposed to every property)
+  //   cb(null, row.value)
+  //   // switch (row.topic) {
+  //   // case topics.seal:
+  //   //   return cb(null, row.value)
+  //   // case topics.msg:
+  //   //   return cb(null, row.value)
+  //   // }
+  // })
 
   extend(this, opts)
+
   const networkName = opts.networkName
   const blockchain = opts.blockchain
   const keeper = opts.keeper
@@ -67,69 +80,102 @@ function Tradle (opts) {
   this.sigKey = utils.sigKey(keys)
   this.chainPubKey = utils.chainPubKey(identity)
   this.sigPubKey = utils.sigPubKey(identity)
+  this._currentLink = protocol.link(this.identity)
+  this.permalink = this.identity[ROOT_HASH] ? utils.linkToBuf(this.identity[ROOT_HASH]) : this._currentLink
   this._senderOpts = {
-    sigPubKey: this.sigPubKey
+    sigPubKey: this.sigPubKey,
     sign: this.sigKey.sign.bind(this.sigKey)
   }
 
+  this._recipientOpts = {
+    pubKey: this.sigPubKey,
+    link: this.permalink
+  }
+
   const chaintracker = trackchain({
-    db: path.join(dir, 'chain'),
+    db: levelup(path.join(dir, 'chain'), {
+      db: opts.leveldown,
+      valueEncoding: 'json'
+    }),
     blockchain: blockchain,
     networkName: networkName,
     confirmedAfter: 10 // stop tracking a tx after 10 blocks
   })
 
-  const sealwatch = watchseals({
+  const sealwatch = createSealWatcher({
     chaintracker: chaintracker,
     ixf: ixf,
     syncInterval: opts.syncInterval
   })
 
-  sealwatch.on('seal', seal => ee.emit('seal', seal))
+  reemit(this, sealwatch, ['seal', 'error'])
 
-  const sealer = sealers({
+  const sealer = createSealer({
     ixf: ixf,
     transactor: opts.transactor
   })
 
-  const sender = senders({
+  reemit(this, sealer, ['sealed', 'error'])
+
+  const sender = createSender({
     ixf: ixf,
     send: () => this._send.apply(this, arguments)
   })
 
+  reemit(this, sender, ['sent', 'error'])
+
   const addressBook = this.addressBook = createAddressBook({
-    idx: ixf,
     keeper: keeper
   })
-
-  ;[sealer, sealwatch, sender].forEach(component => {
-    component.on('error', err => self.emit('error', err))
-  })
-
-  this._link = protocol.link(this.identity)
 }
 
 module.exports = Tradle
 util.inherits(Tradle, EventEmitter)
 const proto = Tradle.prototype
 
-proto.sign = function (object, cb) {
-  protocol.merkleAndSign({
+proto.sign = function sign (object, cb) {
+  protocol.sign({
     object: object,
     sender: this._senderOpts
   }, cb)
 }
 
-proto.getRecipientPubKey = function (recipientLink, cb) {
-  this.addressBook.lookupIdentity({
-    [ROOT_HASH]: recipientLink
-  }, function (err, identityInfo) {
-    if (err) return cb(err)
+// proto.getRecipientPubKey = function (recipientLink, cb) {
+//   this.addressBook.lookupIdentity({
+//     [ROOT_HASH]: recipientLink
+//   }, function (err, identityInfo) {
+//     if (err) return cb(err)
 
-    const pubKey = utils.messagingPubKey(identityInfo.identity)
-    if (!pubKey) cb(new Error('no suitable pubkey found'))
-    else cb(null, pubKey)
-  })
+//     const pubKey = utils.messagingPubKey(identityInfo.identity)
+//     if (!pubKey) cb(new Error('no suitable pubkey found'))
+//     else cb(null, pubKey)
+//   })
+// }
+
+proto.addContact = function addContact (identity, cb) {
+  const self = this
+  typeforce(types.identity, identity)
+
+  cb = cb || noop
+  let batch
+  async.waterfall([
+    function checkExists (done) {
+      async.parallel(identity.pubkeys.map(function (key) {
+        return function (done) {
+          self.addressBook.byPubKey(key, function (err, val) {
+            done(val ? new Error('collision') : null)
+          })
+        }
+      }), done)
+    },
+    function putData (done) {
+      batch = utils.identityBatch(identity)
+      self.keeper.putOne(batch[CUR_HASH], toBuffer(identity)).nodeify(done)
+    },
+    function log (done) {
+      this._ixf.db.batch(batch.batch, done)
+    }
+  ], cb)
 }
 
 proto.send = function (object, opts, cb) {
@@ -141,7 +187,7 @@ proto.send = function (object, opts, cb) {
   }, opts)
 
   const rPubKey = opts.recipient.pubKey
-  let rLink, oLink, mLink, object, msg, msgID
+  let rLink, oLink, mLink, msg, msgID
 
   const checkSent = (msgID, done) => {
     getMsg(this._ixf, msgID, err => {
@@ -165,20 +211,20 @@ proto.send = function (object, opts, cb) {
     },
     function checkAlreadySent (result, done) {
       msg = result.object
-      // const oLink = protocol.link(object)
-      mLink = protocol.link(msg)
+      oLink = utils.hex(protocol.link(object))
+      mLink = utils.hex(protocol.link(msg))
       msgID = utils.getMsgID({
         // TODO: add prev, to make msgID unique
-        link: mLink,
+        message: mLink,
+        object: oLink,
         recipient: rLink,
-        sender: self._link
+        sender: self.permalink
       })
 
       checkSent(msgID, done)
     },
-    function put (done) {
-      oLink = protocol.link(object)
-      saveMessageToKeeper(self.keeper, msg, mLink, object, oLink, done)
+    function putData (done) {
+      saveMessageToKeeper(self.keeper, msg, mLink, oLink, done)
     },
     function log (mLink, oLink, done) {
       ixf.db.put(msgID, {
@@ -186,7 +232,8 @@ proto.send = function (object, opts, cb) {
         msgID: msgID,
         object: oLink,
         message: mLink,
-        recipient: opts.recipient.link,
+        sender: self.permalink,
+        recipient: rLink,
         type: object[TYPE],
         sendstatus: statuses.send.unsent
       }, done)
@@ -206,51 +253,65 @@ proto.receive = function (msg, from, cb) {
   }
 
   const object = msg.object
-  let msgID, mLink, oLink
+  let sender, msgID, mLink, oLink, sLink
 
   async.waterfall([
     function lookup (done) {
       if (from.identity) {
         done(null, identityInfo)
       } else {
-        addressBook.lookupIdentity(from, done)
+        self.addressBook.lookupIdentity(from, done)
       }
     },
-    function (identityInfo, done) {
+    function putData (identityInfo, done) {
+      sender = identityInfo
+      sLink = getIdentityLink(identityInfo)
       try {
         utils.validateMessage(msg, identityInfo.identity, self.identity)
       } catch (err) {
         return done(err)
       }
 
-      mLink = protocol.link(msg)
-      oLink = protocol.link(msg.object)
+      mLink = utils.hexLink(msg)
+      oLink = utils.hexLink(object)
       msgID = utils.getMsgID({
         sender: getIdentityLink(identityInfo),
-        recipient: self._link,
+        recipient: self.permalink,
         link: mLink
       })
 
       // TODO: check exists?
-      saveMessageToKeeper(self.keeper, msg, mLink, object, oLink, done)
+      saveMessageToKeeper(self.keeper, msg, mLink, oLink, done)
     },
-    function (done) {
-      this._ixf.db.put({
+    function log (done) {
+      this._ixf.db.put(msgID, {
         topic: topics.msg,
         msgID: msgID,
-        link: link,
-        prevLink: prevLink,
+        [CUR_HASH]: oLink,
+        [ROOT_HASH]: object[ROOT_HASH] || oLink,
+        [PREV_HASH]: object[PREV_HASH],
+        message: mLink,
+        recipient: self.permalink,
+        sender: sLink,
         type: object[TYPE],
-        basePubKey: toPubKey,
-        amount: opts.amount,
         receivestatus: statuses.receive.received
       }, done)
-    }
-  ], cb)
+    },
+  ], err => {
+    if (err) return cb(err)
+
+    self.emit('message', {
+      message: msg,
+      object: object,
+      sender: sender
+    })
+
+    cb()
+  })
 }
 
 proto.seal = function (opts, cb) {
-  typeforce{
+  typeforce({
     amount: 'number',
     object: 'object'
   }, opts)
@@ -336,9 +397,9 @@ function getIdentityLink (identityInfo) {
   return new Buffer(identityInfo[ROOT_HASH], 'hex')
 }
 
-function saveMessageToKeeper (keeper, msg, mLink, object, oLink, cb) {
+function saveMessageToKeeper (keeper, msg, mLink, oLink, cb) {
   keeper.putMany([
-    { key: utils.hex(oLink), value: toBuffer(object) },
+    { key: utils.hex(oLink), value: toBuffer(msg.object) },
     { key: utils.hex(mLink), value: toBuffer(msg) }
   ])
   .nodeify(cb)

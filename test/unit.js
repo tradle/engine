@@ -2,7 +2,10 @@
 
 const test = require('tape')
 const backoff = require('backoff')
+const memdown = require('memdown')
+const indexFeed = require('../lib/index-feed')
 const createQueue = require('../lib/queue')
+const utils = require('../lib/utils')
 
 test('queue', function (t) {
   let jobsRunning = 0
@@ -63,5 +66,33 @@ test('queue', function (t) {
         })
       })()
     }
+  })
+})
+
+test.only('index-feed', function (t) {
+  const ixf = indexFeed({
+    leveldown: memdown,
+    index: './index',
+    log: './log',
+    indexer: indexer
+  })
+
+  function indexer (op, cb) {
+    cb(null, [{
+      type: 'put',
+      key: 'hey',
+      value: { hey: 'ho' }
+    }])
+  }
+
+  ixf.put('blah', 'habla', err => {
+    if (err) throw err
+
+    ixf.get('hey', (err, val) => {
+      if (err) throw err
+
+      t.same(val, {hey: 'ho'})
+      t.end()
+    })
   })
 })
