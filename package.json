@@ -7,7 +7,7 @@
     "test": "node test/unit"
   },
   "author": "Mark Vayngrib <mark@tradle.io> (http://github.com/mvayngrib)",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@tradle/constants": "^2.0.3",
     "@tradle/offline-keeper": "^3.1.1",
@@ -19,7 +19,6 @@
     "changesdown": "mvayngrib/changesdown#customview",
     "index-feed": "^1.0.0",
     "levelup": "^1.3.1",
-    "map-stream": "0.0.6",
     "memdown": "^1.1.2",
     "mutexify": "^1.1.0",
     "pump": "^1.0.1",
