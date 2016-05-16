@@ -3,14 +3,15 @@
 const test = require('tape')
 const async = require('async')
 const extend = require('xtend')
+const levelup = require('levelup')
 const leveldown = require('memdown')
 const collect = require('stream-collector')
 const constants = require('@tradle/constants')
 const fakeKeeper = require('@tradle/test-helpers').fakeKeeper
+const changesFeed = require('changes-feed')
 const createAddressBook = require('../lib/addressBook')
 const users = require('./fixtures/users')
 const utils = require('../lib/utils')
-const logs = require('../lib/logs')
 const topics = require('../lib/topics')
 const indexFeed = require('../lib/index-feed')
 const TYPE = constants.TYPE
@@ -23,12 +24,20 @@ const nextDBName = function () {
   return 'db' + (dbCounter++)
 }
 
+const nextFeed = function () {
+  return changesFeed(nextDB())
+}
+
+const nextDB = function () {
+  return levelup(nextDBName(), {
+    db: leveldown,
+    valueEncoding: 'json'
+  })
+}
+
 test('ignore identities that collide on keys', function (t) {
   const ted = extend(users[0].pub) // defensive copy
-  const log = logs(nextDBName(), {
-    db: leveldown
-  })
-
+  const feed = nextFeed()
   const badPerson = extend(ted, { name: 'evil ted' })
   const keeperMap = {}
   const tedHash = 'abc'
@@ -52,59 +61,48 @@ test('ignore identities that collide on keys', function (t) {
 
   const keeper = fakeKeeper.forMap(keeperMap)
 
-  const db = indexFeed({
-    leveldown: leveldown,
-    log: log,
-    db: nextDBName()
-  })
-
+  const db = nextDB()
   const identities = createAddressBook({
-    leveldown: leveldown,
-    log: log,
+    changes: feed,
     keeper: keeper,
-    db: nextDBName()
+    db: db
   })
 
-  async.series([
-    function (cb) {
-      db.put('a', {
-        topic: topics.addcontact,
-        [ROOT_HASH]: tedHash,
-        [CUR_HASH]: tedHash
-      }, cb)
-    },
-    function (cb) {
-      db.put('b', {
-        topic: topics.addcontact,
-        [ROOT_HASH]: badPersonHash,
-        [CUR_HASH]: badPersonHash
-      }, cb)
-    }
-  ], function (err) {
-    t.ok(err) // expected, due to attempted collision
+  feed.append({
+    topic: topics.addcontact,
+    [ROOT_HASH]: tedHash,
+    [CUR_HASH]: tedHash
+  })
 
-    async.parallel(ted.pubkeys.map(key => {
-      return function (cb) {
-        identities.lookupIdentity(key.fingerprint, function (err, identityInfo) {
-          if (err) throw err
+  feed.append({
+    topic: topics.addcontact,
+    [ROOT_HASH]: badPersonHash,
+    [CUR_HASH]: badPersonHash
+  })
 
-          t.same(identityInfo, {
-            [ROOT_HASH]: tedHash,
-            [CUR_HASH]: tedHash,
-            identity: ted
-          })
+  identities.lookupIdentity(badPersonHash, function (err) {
+    t.ok(err)
+  })
 
-          cb()
+  async.parallel(ted.pubkeys.map(key => {
+    return function (cb) {
+      identities.lookupIdentity(key.fingerprint, function (err, identityInfo) {
+        if (err) throw err
+
+        t.same(identityInfo, {
+          [ROOT_HASH]: tedHash,
+          [CUR_HASH]: tedHash,
+          identity: ted
         })
-      }
-    }), t.end)
-  })
+
+        cb()
+      })
+    }
+  }), t.end)
 })
 
 test('update identity', function (t) {
-  const log = logs(nextDBName(), {
-    db: leveldown
-  })
+  const changes = nextFeed()
 
   let ted = extend(users[0].pub)
 
@@ -123,36 +121,29 @@ test('update identity', function (t) {
   const keeper = fakeKeeper.forMap(keeperMap)
   const identities = createAddressBook({
     leveldown: leveldown,
-    log: log,
+    changes: changes,
     keeper: keeper,
-    db: nextDBName()
+    db: nextDB()
   })
 
-  async.series([
-    function (cb) {
-      identities._db.put('a', {
-        topic: topics.addcontact,
-        [ROOT_HASH]: originalHash,
-        [CUR_HASH]: originalHash
-      }, cb)
-    },
-    function (cb) {
-      identities._db.put('b', {
-        topic: topics.addcontact,
-        [ROOT_HASH]: originalHash,
-        [PREV_HASH]: originalHash,
-        [CUR_HASH]: updateHash
-      }, cb)
-    }
-  ], function (err) {
+  changes.append({
+    topic: topics.addcontact,
+    [ROOT_HASH]: originalHash,
+    [CUR_HASH]: originalHash
+  })
+
+  changes.append({
+    topic: topics.addcontact,
+    [ROOT_HASH]: originalHash,
+    [PREV_HASH]: originalHash,
+    [CUR_HASH]: updateHash
+  })
+
+  identities.lookupIdentity(ted.pubkeys[0].fingerprint, function (err, storedTed) {
     if (err) throw err
 
-    identities.lookupIdentity(ted.pubkeys[0].fingerprint, function (err, storedTed) {
-      if (err) throw err
-
-      t.same(storedTed.identity, ted)
-      testStreams()
-    })
+    t.same(storedTed.identity, ted)
+    testStreams()
   })
 
   function testStreams () {

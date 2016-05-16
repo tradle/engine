@@ -5,6 +5,8 @@ const async = require('async')
 const extend = require('xtend')
 const leveldown = require('memdown')
 const collect = require('stream-collector')
+const levelup = require('levelup')
+const changesFeed = require('changes-feed')
 const constants = require('@tradle/constants')
 const fakeKeeper = require('@tradle/test-helpers').fakeKeeper
 const createMessageDB = require('../lib/msgDB')
@@ -22,6 +24,17 @@ const nextDBName = function () {
   return 'db' + (dbCounter++)
 }
 
+const nextFeed = function () {
+  return changesFeed(nextDB())
+}
+
+const nextDB = function () {
+  return levelup(nextDBName(), {
+    db: leveldown,
+    valueEncoding: 'json'
+  })
+}
+
 test('send / receive', function (t) {
   const keeperMap = {
     a1: { a: 1 },
@@ -29,54 +42,45 @@ test('send / receive', function (t) {
     b1: { b: 1 }
   }
 
+  const changes = nextFeed()
   const alice = createMessageDB({
-    leveldown: leveldown,
-    log: logs(nextDBName(), {
-      db: leveldown
-    }),
+    changes: changes,
     keeper: fakeKeeper.forMap(keeperMap),
-    db: nextDBName()
+    db: nextDB()
   })
 
-  async.series([
-    function (cb) {
-      alice._db.put('a', {
-        topic: topics.msg,
-        msgID: 'a',
-        type: 'fruit',
-        [ROOT_HASH]: 'a1',
-        [CUR_HASH]: 'a1'
-      }, cb)
-    },
-    function (cb) {
-      alice._db.put('b', {
-        topic: topics.msg,
-        msgID: 'b',
-        type: 'veggie',
-        [ROOT_HASH]: 'b1',
-        [CUR_HASH]: 'b1'
-      }, cb)
-    },
-    function (cb) {
-      alice._db.put('a', {
-        topic: topics.msg,
-        [ROOT_HASH]: 'a1',
-        [CUR_HASH]: 'a2'
-      }, cb)
-    }
-  ], function (err) {
+  changes.append({
+    topic: topics.msg,
+    msgID: 'a',
+    type: 'fruit',
+    [ROOT_HASH]: 'a1',
+    [CUR_HASH]: 'a1'
+  })
+
+  changes.append({
+    topic: topics.msg,
+    msgID: 'b',
+    type: 'veggie',
+    [ROOT_HASH]: 'b1',
+    [CUR_HASH]: 'b1'
+  })
+
+  changes.append({
+    topic: topics.msg,
+    msgID: 'a',
+    [ROOT_HASH]: 'a1',
+    [CUR_HASH]: 'a2'
+  })
+
+  alice.list(function (err, msgs) {
     if (err) throw err
 
-    alice.list(function (err, msgs) {
+    t.same(msgs, [ { a: 2 }, { b: 1 } ])
+    alice.list('fruit', function (err, msgs) {
       if (err) throw err
 
-      t.same(msgs, [ { a: 2 }, { b: 1 } ])
-      alice.list('fruit', function (err, msgs) {
-        if (err) throw err
-
-        t.same(msgs, [ { a: 2 }])
-        t.end()
-      })
+      t.same(msgs, [ { a: 2 }])
+      t.end()
     })
   })
 })
