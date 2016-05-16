@@ -42,28 +42,12 @@ function Tradle (opts) {
     transactor: typeforce.maybe(types.transactor)
   }, opts, true)
 
-  const dir = opts.dir
-  const dbOpts = { db: opts.leveldown }
-  const log = logs(path.join(dir, 'log.db'), dbOpts)
-  // const ixf = this._ixf = indexFeed({
-  //   changes: changes,
-  //   db: path.join(dir, 'index.db'),
-  //   leveldown: opts.leveldown
-  // })
-
-  // ixf.index.add(function (row, cb) {
-  //   // TODO: pick and choose properties to index (as opposed to every property)
-  //   cb(null, row.value)
-  //   // switch (row.topic) {
-  //   // case topics.seal:
-  //   //   return cb(null, row.value)
-  //   // case topics.msg:
-  //   //   return cb(null, row.value)
-  //   // }
-  // })
-
   extend(this, opts)
 
+  const dir = opts.dir
+  this._levelOpts = { db: opts.leveldown, valueEncoding: 'json' }
+
+  const changes = changesFeed(levelup(path.join(dir, 'log.db'), this._levelOpts))
   const networkName = opts.networkName
   const blockchain = opts.blockchain
   const keeper = opts.keeper
@@ -92,33 +76,23 @@ function Tradle (opts) {
     link: this.permalink
   }
 
-  const chaintracker = trackchain({
-    db: levelup(path.join(dir, 'chain'), {
-      db: opts.leveldown,
-      valueEncoding: 'json'
-    }),
-    blockchain: blockchain,
-    networkName: networkName,
-    confirmedAfter: 10 // stop tracking a tx after 10 blocks
-  })
+  this._trackchain()
 
-  const sealwatch = createSealWatcher({
-    chaintracker: chaintracker,
-    ixf: ixf,
-    syncInterval: opts.syncInterval
+  const msgDB = this.messages = createMessageDB({
+    changes: changes,
+    db: levelup(path.join(dir, 'msg.db'), this._levelOpts)
+    keeper: keeper
   })
-
-  reemit(this, sealwatch, ['seal', 'error'])
 
   const sealer = createSealer({
-    ixf: ixf,
+    msgDB: msgDB,
     transactor: opts.transactor
   })
 
   reemit(this, sealer, ['sealed', 'error'])
 
   const sender = createSender({
-    ixf: ixf,
+    msgDB: msgDB,
     send: () => this._send.apply(this, arguments)
   })
 
@@ -368,9 +342,52 @@ proto._send = function () {
 }
 
 proto.destroy = function () {
-  sealwatch.stop()
-  sealer.stop()
-  sender.stop()
+  this.sealwatch.stop()
+  this.sealer.stop()
+  this.sender.stop()
+}
+
+proto.sync = function () {
+  this.chaintracker.sync()
+}
+
+proto._trackchain = function () {
+  if (this.chaintracker) return
+
+  const chaintracker = this.chaintracker = trackchain({
+    db: levelup(path.join(this.dir, 'chain'), {
+      db: this.leveldown,
+      valueEncoding: 'json'
+    }),
+    blockchain: this.blockchain,
+    networkName: this.networkName,
+    confirmedAfter: 10 // stop tracking a tx after 10 blocks
+  })
+
+  const sealwatch = this.sealwatch = createSealWatcher({
+    db: levelup(path.join(this.dir, 'chain'), {
+      db: this.leveldown,
+      valueEncoding: 'json'
+    }),
+    chaintracker: this.chaintracker,
+    syncInterval: this.syncInterval
+  })
+
+  reemit(this, sealwatch, ['seal', 'error'])
+  const chaintracker = opts.chaintracker
+  chaintracker.on('txs', txInfos => {
+    this.log.append(txInfos.map(txInfo => {
+      // const confirmed = (txInfo.confirmations || 0) >= CONFIRMATIONS
+      return {
+        type: 'put',
+        key: 'tx:' + txInfo.txId,
+        value: extend({
+          topic: 'tx',
+          // confirmationstatus: confirmed ? statuses.tx.confirmed : statuses.tx.unconfirmed
+        }, txInfo)
+      }
+    }))
+  })
 }
 
 function getWatch (ixf, watchID, cb) {

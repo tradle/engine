@@ -12,6 +12,7 @@ const users = require('./fixtures/users')
 const utils = require('../lib/utils')
 const logs = require('../lib/logs')
 const topics = require('../lib/topics')
+const indexFeed = require('../lib/index-feed')
 const TYPE = constants.TYPE
 const ROOT_HASH = constants.ROOT_HASH
 const PREV_HASH = constants.PREV_HASH
@@ -50,6 +51,13 @@ test('ignore identities that collide on keys', function (t) {
   //   .set(ROOT_HASH, badPersonHash)
 
   const keeper = fakeKeeper.forMap(keeperMap)
+
+  const db = indexFeed({
+    leveldown: leveldown,
+    log: log,
+    db: nextDBName()
+  })
+
   const identities = createAddressBook({
     leveldown: leveldown,
     log: log,
@@ -59,14 +67,14 @@ test('ignore identities that collide on keys', function (t) {
 
   async.series([
     function (cb) {
-      identities._db.put('a', {
+      db.put('a', {
         topic: topics.addcontact,
         [ROOT_HASH]: tedHash,
         [CUR_HASH]: tedHash
       }, cb)
     },
     function (cb) {
-      identities._db.put('b', {
+      db.put('b', {
         topic: topics.addcontact,
         [ROOT_HASH]: badPersonHash,
         [CUR_HASH]: badPersonHash
