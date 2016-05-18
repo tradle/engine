@@ -6,42 +6,27 @@ const extend = require('xtend')
 const levelup = require('levelup')
 const leveldown = require('memdown')
 const collect = require('stream-collector')
+// const tradle = require('../')
 const constants = require('@tradle/constants')
-const fakeKeeper = require('@tradle/test-helpers').fakeKeeper
 const changesFeed = require('changes-feed')
 const createAddressBook = require('../lib/addressBook')
 const users = require('./fixtures/users')
 const utils = require('../lib/utils')
 const topics = require('../lib/topics')
-const indexFeed = require('../lib/index-feed')
 const TYPE = constants.TYPE
 const ROOT_HASH = constants.ROOT_HASH
 const PREV_HASH = constants.PREV_HASH
 const CUR_HASH = constants.CUR_HASH
 const IDENTITY_TYPE = constants.TYPES.IDENTITY
-let dbCounter = 0
-const nextDBName = function () {
-  return 'db' + (dbCounter++)
-}
-
-const nextFeed = function () {
-  return changesFeed(nextDB())
-}
-
-const nextDB = function () {
-  return levelup(nextDBName(), {
-    db: leveldown,
-    valueEncoding: 'json'
-  })
-}
+const helpers = require('./helpers')
 
 test('ignore identities that collide on keys', function (t) {
   const ted = extend(users[0].pub) // defensive copy
-  const feed = nextFeed()
+  const feed = helpers.nextFeed()
   const badPerson = extend(ted, { name: 'evil ted' })
   const tedHash = 'abc'
   const badPersonHash = 'efg'
-  const keeper = nextDB()
+  const keeper = helpers.nextDB()
   keeper.batch([
     {
       type: 'put',
@@ -69,7 +54,7 @@ test('ignore identities that collide on keys', function (t) {
   //   .set(CUR_HASH, badPersonHash)
   //   .set(ROOT_HASH, badPersonHash)
 
-  const db = nextDB()
+  const db = helpers.nextDB()
   const identities = createAddressBook({
     changes: feed,
     keeper: keeper,
@@ -114,7 +99,7 @@ test('ignore identities that collide on keys', function (t) {
 })
 
 test('update identity', function (t) {
-  const changes = nextFeed()
+  const changes = helpers.nextFeed()
 
 
   const originalHash = 'abc'
@@ -126,7 +111,7 @@ test('update identity', function (t) {
   newTed[ROOT_HASH] = originalHash
   newTed[PREV_HASH] = originalHash
 
-  const keeper = nextDB()
+  const keeper = helpers.nextDB()
   keeper.batch([
     {
       type: 'put',
@@ -144,7 +129,7 @@ test('update identity', function (t) {
     leveldown: leveldown,
     changes: changes,
     keeper: keeper,
-    db: nextDB()
+    db: helpers.nextDB()
   })
 
   changes.append({
