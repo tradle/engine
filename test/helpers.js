@@ -19,3 +19,7 @@ exports.nextDB = function nextDB () {
     valueEncoding: 'json'
   })
 }
+
+exports.keeper = function keeper () {
+  return helpers.nextDB()
+}

@@ -14,6 +14,7 @@
     "@tradle/protocol": "file:../tradle-protocol",
     "async": "^2.0.0-rc.4",
     "backoff": "^2.5.0",
+    "bs58check": "^1.0.8",
     "cb-blockr": "^3.1.2",
     "changes-feed": "mvayngrib/changes-feed",
     "changesdown": "mvayngrib/changesdown#customview",

@@ -22,13 +22,7 @@ const IDENTITY_TYPE = constants.TYPES.IDENTITY
 const helpers = require('./helpers')
 
 test('list messages', function (t) {
-  // const keeperMap = {
-  //   a1: { a: 1 },
-  //   a2: { a: 2 },
-  //   b1: { b: 1 }
-  // }
-
-  const keeper = helpers.nextDB()
+  const keeper = helpers.keeper()
   keeper.batch([
     {
       type: 'put',
@@ -84,11 +78,11 @@ test('list messages', function (t) {
     alice.list(function (err, msgs) {
       if (err) throw err
 
-      t.same(msgs, [ { a: 2 }, { b: 1 } ])
+      t.same(msgs.map(m => m.object), [ { a: 2 }, { b: 1 } ])
       alice.list('fruit', function (err, msgs) {
         if (err) throw err
 
-        t.same(msgs, [ { a: 2 }])
+        t.same(msgs.map(m => m.object), [ { a: 2 }])
         t.end()
       })
     })

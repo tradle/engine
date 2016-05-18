@@ -9,61 +9,71 @@ const Readable = require('readable-stream').Readable
 const createQueue = require('../lib/queue')
 const utils = require('../lib/utils')
 
-test('codecs', function (t) {
-  const top = levelup('top', {
-    db: memdown,
-    valueEncoding: 'json'
-  })
+test('pub key to address', function (t) {
+  const pub = {
+    pub: new Buffer('030135adc7e0be8429fc903511f2f72ea481b25f9177d9f2f3d2ecfcd81d1b02b4', 'hex'),
+    curve: 'secp256k1'
+  }
 
-  const utf8 = subdown(top, 'a', {
-    valueEncoding: 'utf8'
-  })
-
-  const binary = subdown(top, 'b', {
-    valueEncoding: 'binary'
-  })
-
-  const custom = subdown(top, 'c', {
-    valueEncoding: {
-      encode: function (value) {
-        return 'blah'
-      },
-      decode: function (value) {
-        return 'habla'
-      }
-    }
-  })
-
-  const rawBatch = [
-    {
-      type: 'put',
-      key: 'top',
-      value: 'json'
-    },
-    {
-      type: 'del',
-      key: 'utf8',
-      value: 'utf8',
-      db: utf8
-    },
-    {
-      type: 'put',
-      key: 'binary',
-      value: 'binary',
-      db: binary
-    },
-    {
-      type: 'put',
-      key: 'custom',
-      value: 'custom',
-      db: custom
-    }
-  ];
-
-  const encoded = utils.encodeBatch(rawBatch)
-  console.log(encoded)
+  t.equal(utils.pubKeyToAddress(pub, 'testnet'), 'muZH3FNp1836Eyxc966NnfWwe79TnUhuFi')
   t.end()
 })
+
+// test('codecs', function (t) {
+//   const top = levelup('top', {
+//     db: memdown,
+//     valueEncoding: 'json'
+//   })
+
+//   const utf8 = subdown(top, 'a', {
+//     valueEncoding: 'utf8'
+//   })
+
+//   const binary = subdown(top, 'b', {
+//     valueEncoding: 'binary'
+//   })
+
+//   const custom = subdown(top, 'c', {
+//     valueEncoding: {
+//       encode: function (value) {
+//         return 'blah'
+//       },
+//       decode: function (value) {
+//         return 'habla'
+//       }
+//     }
+//   })
+
+//   const rawBatch = [
+//     {
+//       type: 'put',
+//       key: 'top',
+//       value: 'json'
+//     },
+//     {
+//       type: 'del',
+//       key: 'utf8',
+//       value: 'utf8',
+//       db: utf8
+//     },
+//     {
+//       type: 'put',
+//       key: 'binary',
+//       value: 'binary',
+//       db: binary
+//     },
+//     {
+//       type: 'put',
+//       key: 'custom',
+//       value: 'custom',
+//       db: custom
+//     }
+//   ];
+
+//   const encoded = utils.encodeBatch(rawBatch)
+//   console.log(encoded)
+//   t.end()
+// })
 
 test('queue', function (t) {
   let jobsRunning = 0
