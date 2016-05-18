@@ -13,7 +13,7 @@ const createSender = require('../lib/sender')
 const helpers = require('./helpers')
 
 test('try again', function (t) {
-  t.plan(3)
+  t.plan(5)
 
   // const msgs = [
   //   a: { hello: 'world' },
@@ -89,6 +89,14 @@ test('try again', function (t) {
     },
     msgDB: msgDB,
     changes: changes
+  })
+
+  sender.on('sent', function (msg) {
+    msgDB.get(msg.msgID, function (err, msg) {
+      if (err) throw err
+
+      t.equal(msg.sendstatus, statuses.send.sent)
+    })
   })
 
   function start (err) {

@@ -3,10 +3,67 @@
 const test = require('tape')
 const backoff = require('backoff')
 const memdown = require('memdown')
+const levelup = require('levelup')
+const subdown = require('subleveldown')
 const Readable = require('readable-stream').Readable
-const indexFeed = require('../lib/index-feed')
 const createQueue = require('../lib/queue')
 const utils = require('../lib/utils')
+
+test('codecs', function (t) {
+  const top = levelup('top', {
+    db: memdown,
+    valueEncoding: 'json'
+  })
+
+  const utf8 = subdown(top, 'a', {
+    valueEncoding: 'utf8'
+  })
+
+  const binary = subdown(top, 'b', {
+    valueEncoding: 'binary'
+  })
+
+  const custom = subdown(top, 'c', {
+    valueEncoding: {
+      encode: function (value) {
+        return 'blah'
+      },
+      decode: function (value) {
+        return 'habla'
+      }
+    }
+  })
+
+  const rawBatch = [
+    {
+      type: 'put',
+      key: 'top',
+      value: 'json'
+    },
+    {
+      type: 'del',
+      key: 'utf8',
+      value: 'utf8',
+      db: utf8
+    },
+    {
+      type: 'put',
+      key: 'binary',
+      value: 'binary',
+      db: binary
+    },
+    {
+      type: 'put',
+      key: 'custom',
+      value: 'custom',
+      db: custom
+    }
+  ];
+
+  const encoded = utils.encodeBatch(rawBatch)
+  console.log(encoded)
+  t.end()
+})
 
 test('queue', function (t) {
   let jobsRunning = 0
@@ -142,33 +199,5 @@ test('queue', function (t) {
 //         })
 //       })()
 //     }
-//   })
-// })
-
-// test.only('index-feed', function (t) {
-//   const ixf = indexFeed({
-//     leveldown: memdown,
-//     index: './index',
-//     log: './log',
-//     indexer: indexer
-//   })
-
-//   function indexer (op, cb) {
-//     cb(null, [{
-//       type: 'put',
-//       key: 'hey',
-//       value: { hey: 'ho' }
-//     }])
-//   }
-
-//   ixf.put('blah', 'habla', err => {
-//     if (err) throw err
-
-//     ixf.get('hey', (err, val) => {
-//       if (err) throw err
-
-//       t.same(val, {hey: 'ho'})
-//       t.end()
-//     })
 //   })
 // })
