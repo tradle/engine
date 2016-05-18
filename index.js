@@ -293,10 +293,14 @@ proto.seal = function (opts, cb) {
   const object = opts.object
   const link = protocol.link(object)
   const prevLink = protocol.prevSealLink(object)
-  const toPubKey = opts.pubKey || this.chainPubKey
+  const basePubKey = opts.pubKey || this.chainPubKey
   const sealID = utils.getSealID({
     link: link,
-    toPubKey: toPubKey
+    basePubKey: basePubKey
+  })
+
+  this.msgDB.unsealed.get(sealID, function (err, val) {
+
   })
 
   getSeal(this._ixf, sealID, (err, seal) => {
@@ -307,10 +311,16 @@ proto.seal = function (opts, cb) {
       this._ixf.db.put(sealID, {
         topic: topics.seal,
         sealID: sealID,
-        link: link,
-        prevLink: prevLink,
+        sealThis: protocol.sealPubKey({
+          link: link,
+          basePubKey: basePubKey
+        }),
+        sealPrev: object[PREV] && protocol.sealPrevPubKey({
+          object: object,
+          basePubKey: basePubKey
+        }),
         type: object[TYPE],
-        basePubKey: toPubKey,
+        basePubKey: basePubKey,
         amount: opts.amount,
         sealstatus: statuses.seal.unsealed
       }, cb)

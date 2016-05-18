@@ -39,11 +39,21 @@ test('ignore identities that collide on keys', function (t) {
   const ted = extend(users[0].pub) // defensive copy
   const feed = nextFeed()
   const badPerson = extend(ted, { name: 'evil ted' })
-  const keeperMap = {}
   const tedHash = 'abc'
   const badPersonHash = 'efg'
-  keeperMap[tedHash] = ted
-  keeperMap[badPersonHash] = badPerson
+  const keeper = nextDB()
+  keeper.batch([
+    {
+      type: 'put',
+      key: tedHash,
+      value: ted
+    },
+    {
+      type: 'put',
+      key: badPersonHash,
+      value: badPerson
+    }
+  ], start)
 
   // const tedFromChain = new Entry({
   //     type: EventType.chain.readSuccess
@@ -58,8 +68,6 @@ test('ignore identities that collide on keys', function (t) {
   //   .set(TYPE, IDENTITY_TYPE)
   //   .set(CUR_HASH, badPersonHash)
   //   .set(ROOT_HASH, badPersonHash)
-
-  const keeper = fakeKeeper.forMap(keeperMap)
 
   const db = nextDB()
   const identities = createAddressBook({
@@ -80,45 +88,58 @@ test('ignore identities that collide on keys', function (t) {
     [CUR_HASH]: badPersonHash
   })
 
-  identities.lookupIdentity(badPersonHash, function (err) {
-    t.ok(err)
-  })
+  function start (err) {
+    if (err) throw err
 
-  async.parallel(ted.pubkeys.map(key => {
-    return function (cb) {
-      identities.lookupIdentity(key.fingerprint, function (err, identityInfo) {
-        if (err) throw err
+    identities.lookupIdentity(badPersonHash, function (err) {
+      t.ok(err)
+    })
 
-        t.same(identityInfo, {
-          [ROOT_HASH]: tedHash,
-          [CUR_HASH]: tedHash,
-          identity: ted
+    async.parallel(ted.pubkeys.map(key => {
+      return function (cb) {
+        identities.lookupIdentity(key.fingerprint, function (err, identityInfo) {
+          if (err) throw err
+
+          t.same(identityInfo, {
+            [ROOT_HASH]: tedHash,
+            [CUR_HASH]: tedHash,
+            identity: ted
+          })
+
+          cb()
         })
-
-        cb()
-      })
-    }
-  }), t.end)
+      }
+    }), t.end)
+  }
 })
 
 test('update identity', function (t) {
   const changes = nextFeed()
 
-  let ted = extend(users[0].pub)
 
-  var keeperMap = {}
-  var originalHash = 'abc'
+  const originalHash = 'abc'
+  const updateHash = 'abc1'
 
-  keeperMap[originalHash] = ted
+  const ted = extend(users[0].pub)
+  const newTed = extend(ted)
+  newTed.name = 'ted!'
+  newTed[ROOT_HASH] = originalHash
+  newTed[PREV_HASH] = originalHash
 
-  ted = extend(ted)
-  ted.name = 'ted!'
-  ted[ROOT_HASH] = originalHash
-  ted[PREV_HASH] = originalHash
+  const keeper = nextDB()
+  keeper.batch([
+    {
+      type: 'put',
+      key: originalHash,
+      value: ted
+    },
+    {
+      type: 'put',
+      key: updateHash,
+      value: newTed
+    }
+  ], start)
 
-  var updateHash = 'abc1'
-  keeperMap[updateHash] = ted
-  const keeper = fakeKeeper.forMap(keeperMap)
   const identities = createAddressBook({
     leveldown: leveldown,
     changes: changes,
@@ -139,12 +160,16 @@ test('update identity', function (t) {
     [CUR_HASH]: updateHash
   })
 
-  identities.lookupIdentity(ted.pubkeys[0].fingerprint, function (err, storedTed) {
+  function start (err) {
     if (err) throw err
 
-    t.same(storedTed.identity, ted)
-    testStreams()
-  })
+    identities.lookupIdentity(newTed.pubkeys[0].fingerprint, function (err, storedTed) {
+      if (err) throw err
+
+      t.same(storedTed.identity, newTed)
+      testStreams()
+    })
+  }
 
   function testStreams () {
     collect(identities.stream(), function (err, stored) {
@@ -152,7 +177,7 @@ test('update identity', function (t) {
 
       t.equal(stored.length, 1)
       stored = stored[0]
-      t.same(stored.identity, ted)
+      t.same(stored.identity, newTed)
       t.equal(stored[CUR_HASH], updateHash)
       t.equal(stored[ROOT_HASH], originalHash)
       t.end()
