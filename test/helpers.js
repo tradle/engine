@@ -1,7 +1,7 @@
 
 const leveldown = require('memdown')
 const levelup = require('levelup')
-const changesFeed = require('changes-feed')
+const changesFeed = require('../lib/changes')
 const helpers = exports
 var dbCounter = 0
 

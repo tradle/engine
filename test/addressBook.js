@@ -17,7 +17,7 @@ const TYPE = constants.TYPE
 const PERMALINK = constants.PERMALINK
 const PREVLINK = constants.PREVLINK
 const LINK = constants.LINK
-const IDENTITY_TYPE = constants.types.IDENTITY
+const IDENTITY_TYPE = constants.TYPES.IDENTITY
 const helpers = require('./helpers')
 
 test('ignore identities that collide on keys', function (t) {
@@ -63,14 +63,14 @@ test('ignore identities that collide on keys', function (t) {
 
   feed.append({
     topic: topics.addcontact,
-    [PERMALINK]: tedHash,
-    [LINK]: tedHash
+    permalink: tedHash,
+    link: tedHash
   })
 
   feed.append({
     topic: topics.addcontact,
-    [PERMALINK]: badPersonHash,
-    [LINK]: badPersonHash
+    permalink: badPersonHash,
+    link: badPersonHash
   })
 
   function start (err) {
@@ -86,9 +86,10 @@ test('ignore identities that collide on keys', function (t) {
           if (err) throw err
 
           t.same(identityInfo, {
-            [PERMALINK]: tedHash,
-            [LINK]: tedHash,
-            identity: ted
+            permalink: tedHash,
+            link: tedHash,
+            prevlink: undefined,
+            object: ted
           })
 
           cb()
@@ -107,9 +108,8 @@ test('update identity', function (t) {
 
   const ted = extend(users[0].pub)
   const newTed = extend(ted)
+  newTed[PREVLINK] = newTed[PERMALINK] = originalHash
   newTed.name = 'ted!'
-  newTed[PERMALINK] = originalHash
-  newTed[PREVLINK] = originalHash
 
   const keeper = helpers.nextDB()
   keeper.batch([
@@ -134,15 +134,15 @@ test('update identity', function (t) {
 
   changes.append({
     topic: topics.addcontact,
-    [PERMALINK]: originalHash,
-    [LINK]: originalHash
+    permalink: originalHash,
+    link: originalHash
   })
 
   changes.append({
     topic: topics.addcontact,
-    [PERMALINK]: originalHash,
-    [PREVLINK]: originalHash,
-    [LINK]: updateHash
+    permalink: originalHash,
+    prevlink: originalHash,
+    link: updateHash
   })
 
   function start (err) {
@@ -151,7 +151,7 @@ test('update identity', function (t) {
     identities.lookupIdentity(newTed.pubkeys[0].fingerprint, function (err, storedTed) {
       if (err) throw err
 
-      t.same(storedTed.identity, newTed)
+      t.same(storedTed.object, newTed)
       testStreams()
     })
   }
@@ -162,9 +162,9 @@ test('update identity', function (t) {
 
       t.equal(stored.length, 1)
       stored = stored[0]
-      t.same(stored.identity, newTed)
-      t.equal(stored[LINK], updateHash)
-      t.equal(stored[PERMALINK], originalHash)
+      t.same(stored.object, newTed)
+      t.equal(stored.link, updateHash)
+      t.equal(stored.permalink, originalHash)
       t.end()
     })
   }
