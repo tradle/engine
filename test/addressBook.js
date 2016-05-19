@@ -7,17 +7,17 @@ const levelup = require('levelup')
 const leveldown = require('memdown')
 const collect = require('stream-collector')
 // const tradle = require('../')
-const constants = require('@tradle/constants')
-const changesFeed = require('changes-feed')
+const changesFeed = require('../lib/changes')
 const createAddressBook = require('../lib/addressBook')
 const users = require('./fixtures/users')
 const utils = require('../lib/utils')
 const topics = require('../lib/topics')
+const constants = require('../lib/constants')
 const TYPE = constants.TYPE
-const ROOT_HASH = constants.ROOT_HASH
-const PREV_HASH = constants.PREV_HASH
-const CUR_HASH = constants.CUR_HASH
-const IDENTITY_TYPE = constants.TYPES.IDENTITY
+const PERMALINK = constants.PERMALINK
+const PREVLINK = constants.PREVLINK
+const LINK = constants.LINK
+const IDENTITY_TYPE = constants.types.IDENTITY
 const helpers = require('./helpers')
 
 test('ignore identities that collide on keys', function (t) {
@@ -44,15 +44,15 @@ test('ignore identities that collide on keys', function (t) {
   //     type: EventType.chain.readSuccess
   //   })
   //   .set(TYPE, IDENTITY_TYPE)
-  //   .set(CUR_HASH, tedHash)
-  //   .set(ROOT_HASH, tedHash)
+  //   .set(LINK, tedHash)
+  //   .set(PERMALINK, tedHash)
 
   // const badPersonFromChain = new Entry({
   //     type: EventType.chain.readSuccess
   //   })
   //   .set(TYPE, IDENTITY_TYPE)
-  //   .set(CUR_HASH, badPersonHash)
-  //   .set(ROOT_HASH, badPersonHash)
+  //   .set(LINK, badPersonHash)
+  //   .set(PERMALINK, badPersonHash)
 
   const db = helpers.nextDB()
   const identities = createAddressBook({
@@ -63,14 +63,14 @@ test('ignore identities that collide on keys', function (t) {
 
   feed.append({
     topic: topics.addcontact,
-    [ROOT_HASH]: tedHash,
-    [CUR_HASH]: tedHash
+    [PERMALINK]: tedHash,
+    [LINK]: tedHash
   })
 
   feed.append({
     topic: topics.addcontact,
-    [ROOT_HASH]: badPersonHash,
-    [CUR_HASH]: badPersonHash
+    [PERMALINK]: badPersonHash,
+    [LINK]: badPersonHash
   })
 
   function start (err) {
@@ -86,8 +86,8 @@ test('ignore identities that collide on keys', function (t) {
           if (err) throw err
 
           t.same(identityInfo, {
-            [ROOT_HASH]: tedHash,
-            [CUR_HASH]: tedHash,
+            [PERMALINK]: tedHash,
+            [LINK]: tedHash,
             identity: ted
           })
 
@@ -108,8 +108,8 @@ test('update identity', function (t) {
   const ted = extend(users[0].pub)
   const newTed = extend(ted)
   newTed.name = 'ted!'
-  newTed[ROOT_HASH] = originalHash
-  newTed[PREV_HASH] = originalHash
+  newTed[PERMALINK] = originalHash
+  newTed[PREVLINK] = originalHash
 
   const keeper = helpers.nextDB()
   keeper.batch([
@@ -134,15 +134,15 @@ test('update identity', function (t) {
 
   changes.append({
     topic: topics.addcontact,
-    [ROOT_HASH]: originalHash,
-    [CUR_HASH]: originalHash
+    [PERMALINK]: originalHash,
+    [LINK]: originalHash
   })
 
   changes.append({
     topic: topics.addcontact,
-    [ROOT_HASH]: originalHash,
-    [PREV_HASH]: originalHash,
-    [CUR_HASH]: updateHash
+    [PERMALINK]: originalHash,
+    [PREVLINK]: originalHash,
+    [LINK]: updateHash
   })
 
   function start (err) {
@@ -163,8 +163,8 @@ test('update identity', function (t) {
       t.equal(stored.length, 1)
       stored = stored[0]
       t.same(stored.identity, newTed)
-      t.equal(stored[CUR_HASH], updateHash)
-      t.equal(stored[ROOT_HASH], originalHash)
+      t.equal(stored[LINK], updateHash)
+      t.equal(stored[PERMALINK], originalHash)
       t.end()
     })
   }

@@ -7,17 +7,17 @@ const leveldown = require('memdown')
 const collect = require('stream-collector')
 const levelup = require('levelup')
 const changesFeed = require('changes-feed')
-const constants = require('@tradle/constants')
-const createMessageDB = require('../lib/msgDB')
+const constants = require('./constants')
+const createObjectDB = require('../lib/objectDB')
 const createSender = require('../lib/sender')
 const users = require('./fixtures/users')
 const utils = require('../lib/utils')
 const topics = require('../lib/topics')
 const statuses = require('../lib/status')
 const TYPE = constants.TYPE
-const ROOT_HASH = constants.ROOT_HASH
-const PREV_HASH = constants.PREV_HASH
-const CUR_HASH = constants.CUR_HASH
+const PERMALINK = constants.PERMALINK
+const PREVLINK = constants.PREVLINK
+const LINK = constants.LINK
 const IDENTITY_TYPE = constants.TYPES.IDENTITY
 const helpers = require('./helpers')
 
@@ -43,7 +43,7 @@ test('list messages', function (t) {
 
 
   const changes = helpers.nextFeed()
-  const alice = createMessageDB({
+  const alice = createObjectDB({
     changes: changes,
     keeper: keeper,
     db: helpers.nextDB()
@@ -53,23 +53,23 @@ test('list messages', function (t) {
     topic: topics.msg,
     msgID: 'a',
     type: 'fruit',
-    [ROOT_HASH]: 'a1',
-    [CUR_HASH]: 'a1'
+    [PERMALINK]: 'a1',
+    [LINK]: 'a1'
   })
 
   changes.append({
     topic: topics.msg,
     msgID: 'b',
     type: 'veggie',
-    [ROOT_HASH]: 'b1',
-    [CUR_HASH]: 'b1'
+    [PERMALINK]: 'b1',
+    [LINK]: 'b1'
   })
 
   changes.append({
     topic: topics.msg,
     msgID: 'a',
-    [ROOT_HASH]: 'a1',
-    [CUR_HASH]: 'a2'
+    [PERMALINK]: 'a1',
+    [LINK]: 'a2'
   })
 
   function start (err) {

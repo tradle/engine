@@ -2,13 +2,13 @@
 
 const test = require('tape')
 const extend = require('xtend')
-const constants = require('@tradle/constants')
-const ROOT_HASH = constants.ROOT_HASH
-const PREV_HASH = constants.PREV_HASH
-const CUR_HASH = constants.CUR_HASH
+const constants = require('../lib/constants')
+const PERMALINK = constants.PERMALINK
+const PREVLINK = constants.PREVLINK
+const LINK = constants.LINK
 const topics = require('../lib/topics')
 const statuses = require('../lib/status')
-const createMessageDB = require('../lib/msgDB')
+const createObjectDB = require('../lib/objectDB')
 const createSender = require('../lib/sender')
 const helpers = require('./helpers')
 
@@ -41,7 +41,7 @@ test('try again', function (t) {
 
   const changes = helpers.nextFeed()
 
-  const msgDB = createMessageDB({
+  const objectDB = createObjectDB({
     changes: changes,
     keeper: keeper,
     db: helpers.nextDB()
@@ -49,22 +49,22 @@ test('try again', function (t) {
 
   changes.append({
     topic: topics.msg,
-    sendstatus: statuses.send.unsent,
+    sendstatus: statuses.send.pending,
     msgID: 'a',
     sender: bob,
     recipient: alice,
-    [ROOT_HASH]: 'a1',
-    [CUR_HASH]: 'a1'
+    [PERMALINK]: 'a1',
+    [LINK]: 'a1'
   })
 
   changes.append({
     topic: topics.msg,
-    sendstatus: statuses.send.unsent,
+    sendstatus: statuses.send.pending,
     msgID: 'b',
     sender: bob,
     recipient: alice,
-    [ROOT_HASH]: 'b1',
-    [CUR_HASH]: 'b1'
+    [PERMALINK]: 'b1',
+    [LINK]: 'b1'
   })
 
   let failedOnce
@@ -87,12 +87,12 @@ test('try again', function (t) {
         cb(null, {})
       }
     },
-    msgDB: msgDB,
+    objectDB: objectDB,
     changes: changes
   })
 
   sender.on('sent', function (msg) {
-    msgDB.get(msg.msgID, function (err, msg) {
+    objectDB.get(msg.msgID, function (err, msg) {
       if (err) throw err
 
       t.equal(msg.sendstatus, statuses.send.sent)
