@@ -6,10 +6,12 @@ const constants = require('../lib/constants')
 const PERMALINK = constants.PERMALINK
 const PREVLINK = constants.PREVLINK
 const LINK = constants.LINK
+const MESSAGE_TYPE = constants.TYPES.MESSAGE
 const topics = require('../lib/topics')
 const statuses = require('../lib/status')
 const createObjectDB = require('../lib/objectDB')
 const createSender = require('../lib/sender')
+const utils = require('../lib/utils')
 const helpers = require('./helpers')
 
 test('try again', function (t) {
@@ -20,21 +22,17 @@ test('try again', function (t) {
   //   b: { hello: 'alice' }
   // ]
 
-  const msgs = [
-    {
-      key: 'a1',
-      value: { a: 1 }
+  const keyToVal = {
+    a1: {
+      // recipientPubKey:
+      a: 1
     },
-    {
-      key: 'b1',
-      value: { b: 1 }
-    }
-  ]
+    b1: { b: 1 }
+  }
 
   const keeper = helpers.nextDB()
-  keeper.batch(msgs.map(msg => {
-    return extend(msg, { type: 'put' })
-  }), start)
+  const batch = utils.mapToBatch(keyToVal)
+  keeper.batch(batch, start)
 
   const alice = 'alice'
   const bob = 'bob'
@@ -48,27 +46,23 @@ test('try again', function (t) {
   })
 
   changes.append({
-    topic: topics.msg,
-    sendstatus: statuses.send.pending,
-    msgID: 'a',
-    sender: bob,
-    recipient: alice,
-    [PERMALINK]: 'a1',
-    [LINK]: 'a1'
+    topic: topics.newobj,
+    author: bob,
+    type: MESSAGE_TYPE,
+    permalink: 'a1',
+    link: 'a1'
   })
 
   changes.append({
-    topic: topics.msg,
-    sendstatus: statuses.send.pending,
-    msgID: 'b',
-    sender: bob,
-    recipient: alice,
-    [PERMALINK]: 'b1',
-    [LINK]: 'b1'
+    topic: topics.newobj,
+    author: bob,
+    type: MESSAGE_TYPE,
+    permalink: 'b1',
+    link: 'b1'
   })
 
   let failedOnce
-  const unsent = msgs.map(msg => msg.value)
+  const unsent = batch.map(row => row.value)
   const sender = createSender({
     send: function (msg, recipient, cb) {
       t.same(JSON.parse(msg), unsent[0])
@@ -91,11 +85,11 @@ test('try again', function (t) {
     changes: changes
   })
 
-  sender.on('sent', function (msg) {
-    objectDB.get(msg.msgID, function (err, msg) {
+  objectDB.on('sent', function (wrapper) {
+    objectDB.byUID(wrapper.uid, function (err, wrapper) {
       if (err) throw err
 
-      t.equal(msg.sendstatus, statuses.send.sent)
+      t.equal(wrapper.sendstatus, statuses.send.sent)
     })
   })
 
