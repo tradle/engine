@@ -1,6 +1,7 @@
 
 const leveldown = require('memdown')
 const levelup = require('levelup')
+const utils = require('../lib/utils')
 const changesFeed = require('../lib/changes')
 const helpers = exports
 var dbCounter = 0
@@ -23,3 +24,9 @@ exports.nextDB = function nextDB () {
 exports.keeper = function keeper () {
   return helpers.nextDB()
 }
+
+process.on('uncaughtException', function (err) {
+  if (err.tfError) console.log(err.tfError.stack)
+
+  throw err
+})

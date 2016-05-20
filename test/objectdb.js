@@ -21,26 +21,15 @@ const LINK = constants.LINK
 const IDENTITY_TYPE = constants.TYPES.IDENTITY
 const helpers = require('./helpers')
 
-test('list messages', function (t) {
+test('list objects', function (t) {
   const keeper = helpers.keeper()
-  keeper.batch([
-    {
-      type: 'put',
-      key: 'a1',
-      value: { a: 1 }
-    },
-    {
-      type: 'put',
-      key: 'b1',
-      value: { b: 1 }
-    },
-    {
-      type: 'put',
-      key: 'a2',
-      value: { a: 2 }
-    }
-  ], start)
+  const keyValMap = {
+    a1: { a: 1 },
+    b1: { b: 1 },
+    a2: { a: 2 }
+  }
 
+  keeper.batch(utils.mapToBatch(keyValMap), start)
 
   const changes = helpers.nextFeed()
   const alice = createObjectDB({
@@ -50,26 +39,28 @@ test('list messages', function (t) {
   })
 
   changes.append({
-    topic: topics.msg,
-    msgID: 'a',
+    topic: topics.newobj,
+    author: 'alice',
     type: 'fruit',
-    [PERMALINK]: 'a1',
-    [LINK]: 'a1'
+    permalink: 'a1',
+    link: 'a1'
   })
 
   changes.append({
-    topic: topics.msg,
-    msgID: 'b',
+    topic: topics.newobj,
+    author: 'alice',
     type: 'veggie',
-    [PERMALINK]: 'b1',
-    [LINK]: 'b1'
+    permalink: 'b1',
+    link: 'b1'
   })
 
   changes.append({
-    topic: topics.msg,
-    msgID: 'a',
-    [PERMALINK]: 'a1',
-    [LINK]: 'a2'
+    topic: topics.newobj,
+    author: 'alice',
+    permalink: 'a1',
+    prevlink: 'a1',
+    type: 'fruit',
+    link: 'a2'
   })
 
   function start (err) {
@@ -83,12 +74,14 @@ test('list messages', function (t) {
         if (err) throw err
 
         t.same(msgs.map(m => m.object), [ { a: 2 }])
-        t.end()
+
+        alice.byPermalink('a1', function (err, wrapper) {
+          if (err) throw err
+
+          t.equal(wrapper.link, 'a2')
+          t.end()
+        })
       })
     })
   }
 })
-
-// test.only('end to end', function (t) {
-//   const tradles = users.slice(0, 3).map(createNode)
-// })

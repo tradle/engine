@@ -9,18 +9,13 @@ const testHelpers = require('@tradle/test-helpers')
 const kiki = require('@tradle/kiki')
 const utils = require('../lib/utils')
 const users = require('./fixtures/users')
+const helpers = require('./helpers')
 const fakeWallet = testHelpers.fakeWallet
 const fakeKeeper = testHelpers.fakeKeeper
 const DEFAULT_NETWORK_NAME = 'testnet'
 const Tradle = require('../')
 const noop = () => {}
 let INSTANCE_COUNT = 0
-
-process.on('uncaughtException', err => {
-  if (err.tfError) console.log(err.tfError.stack)
-
-  throw err
-})
 
 test('basic', function (t) {
   let blockchain
