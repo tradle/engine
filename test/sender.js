@@ -6,12 +6,14 @@ const constants = require('../lib/constants')
 const PERMALINK = constants.PERMALINK
 const PREVLINK = constants.PREVLINK
 const LINK = constants.LINK
+const TYPE = constants.TYPE
 const MESSAGE_TYPE = constants.TYPES.MESSAGE
 const topics = require('../lib/topics')
 const statuses = require('../lib/status')
 const createObjectDB = require('../lib/objectDB')
 const createSender = require('../lib/sender')
 const utils = require('../lib/utils')
+const Actions = require('../lib/actions')
 const helpers = require('./helpers')
 
 test('try again', function (t) {
@@ -25,9 +27,17 @@ test('try again', function (t) {
   const keyToVal = {
     a1: {
       // recipientPubKey:
+      [TYPE]: MESSAGE_TYPE,
       a: 1
     },
-    b1: { b: 1 }
+    b1: {
+      [TYPE]: 'something else',
+      b: 1
+    },
+    c1: {
+      [TYPE]: MESSAGE_TYPE,
+      c: 1
+    }
   }
 
   const keeper = helpers.nextDB()
@@ -38,6 +48,7 @@ test('try again', function (t) {
   const bob = 'bob'
 
   const changes = helpers.nextFeed()
+  const actions = Actions({ changes: changes })
 
   const objectDB = createObjectDB({
     changes: changes,
@@ -45,24 +56,26 @@ test('try again', function (t) {
     db: helpers.nextDB()
   })
 
-  changes.append({
-    topic: topics.newobj,
-    author: bob,
-    type: MESSAGE_TYPE,
+  actions.createObject({
+    object: keyToVal.a1,
     permalink: 'a1',
     link: 'a1'
-  })
+  }, bob)
 
-  changes.append({
-    topic: topics.newobj,
-    author: bob,
-    type: MESSAGE_TYPE,
+  actions.createObject({
+    object: keyToVal.b1,
     permalink: 'b1',
     link: 'b1'
-  })
+  }, bob)
+
+  actions.createObject({
+    object: keyToVal.c1,
+    permalink: 'c1',
+    link: 'c1'
+  }, bob)
 
   let failedOnce
-  const unsent = batch.map(row => row.value)
+  const unsent = batch.map(row => row.value).filter(val => val[TYPE] === MESSAGE_TYPE)
   const sender = createSender({
     send: function (msg, recipient, cb) {
       t.same(JSON.parse(msg), unsent[0])
@@ -82,7 +95,7 @@ test('try again', function (t) {
       }
     },
     objectDB: objectDB,
-    changes: changes
+    actions: actions
   })
 
   objectDB.on('sent', function (wrapper) {
