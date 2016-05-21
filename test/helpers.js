@@ -1,7 +1,7 @@
 
 const leveldown = require('memdown')
+const changesFeed = require('changes-feed')
 const utils = require('../lib/utils')
-const changesFeed = require('../lib/changes')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE
 const IDENTITY_TYPE = constants.TYPES.IDENTITY
