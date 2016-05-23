@@ -5,15 +5,15 @@ tradle.sender = require('./lib/sender')
 tradle.sealer = require('./lib/sealer')
 tradle.sealwatch = require('./lib/sealwatch')
 tradle.dbs = {
-  object: require('./lib/dbs/objects'),
-  tx: require('./lib/dbs/txs'),
+  objects: require('./lib/dbs/objects'),
+  // tx: require('./lib/dbs/txs'),
   seals: require('./lib/dbs/seals'),
   watches: require('./lib/dbs/watches'),
   addressBook: require('./lib/dbs/addressBook')
 }
 
 tradle.queue = require('./lib/queue')
-tradle.verifier = require('./lib/verifier')
+tradle.validator = require('./lib/validator')
 tradle.types = require('./lib/types')
 tradle.utils = require('./lib/utils')
 tradle.constants = {

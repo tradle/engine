@@ -11,9 +11,8 @@ const utils = require('../lib/utils')
 const users = require('./fixtures/users')
 const helpers = require('./helpers')
 const fakeWallet = testHelpers.fakeWallet
-const fakeKeeper = testHelpers.fakeKeeper
 const DEFAULT_NETWORK_NAME = 'testnet'
-const Tradle = require('../')
+const Node = require('../lib/node')
 const noop = () => {}
 let INSTANCE_COUNT = 0
 
@@ -85,18 +84,19 @@ test('basic', function (t) {
 
 function createNode (opts) {
   const networkName = opts.networkName || DEFAULT_NETWORK_NAME
-  const wallet = opts.wallet || walletFor(opts.keys, opts.blockchain)
-  const blockchain = opts.blockchain || wallet.blockchain
+  const priv = utils.chainKey(opts.keys).exportPrivate().priv
+  const transactor = opts.transactor || helpers.transactor(priv, opts.blockchain)
+  const blockchain = opts.blockchain || transactor.blockchain
   opts = extend(opts, {
     dir: opts.dir || nextDir(),
-    keeper: fakeKeeper.empty(),
+    keeper: helpers.nextDB(),
     networkName: networkName,
-    transactor: Wallet.transactor({ wallet }),
+    transactor: transactor,
     blockchain: blockchain,
     leveldown: opts.leveldown || memdown,
   })
 
-  return new Tradle(opts)
+  return new Node(opts)
 }
 
 function walletFor (keys, blockchain) {

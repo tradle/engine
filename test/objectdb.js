@@ -40,7 +40,7 @@ test('list objects', function (t) {
     changes: changes,
     keeper: keeper,
     db: helpers.nextDB(),
-    me: alice
+    identityInfo: alice
   })
 
   actions.createObject({
