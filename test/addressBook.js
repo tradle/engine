@@ -13,7 +13,7 @@ const users = require('./fixtures/users')
 const utils = require('../lib/utils')
 const topics = require('../lib/topics')
 const constants = require('../lib/constants')
-const Actions = require('../lib/actions')
+const createActions = require('../lib/actions')
 const TYPE = constants.TYPE
 const PERMALINK = constants.PERMALINK
 const PREVLINK = constants.PREVLINK
@@ -56,7 +56,7 @@ test('ignore identities that collide on keys', function (t) {
     db: db
   })
 
-  const actions = Actions({ changes })
+  const actions = createActions({ changes })
 
   actions.addContact(ted, tedHash)
   actions.addContact(badPerson, badPersonHash)
@@ -120,18 +120,9 @@ test('update identity', function (t) {
     db: helpers.nextDB()
   })
 
-  changes.append({
-    topic: topics.addcontact,
-    permalink: originalHash,
-    link: originalHash
-  })
-
-  changes.append({
-    topic: topics.addcontact,
-    permalink: originalHash,
-    prevLink: originalHash,
-    link: updateHash
-  })
+  const actions = createActions({ changes })
+  actions.addContact(ted, originalHash)
+  actions.addContact(newTed, updateHash)
 
   function start (err) {
     if (err) throw err
@@ -145,7 +136,7 @@ test('update identity', function (t) {
   }
 
   function testStreams () {
-    collect(identities.stream(), function (err, stored) {
+    collect(identities.createReadStream(), function (err, stored) {
       if (err) throw err
 
       t.equal(stored.length, 1)
