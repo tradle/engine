@@ -8,11 +8,12 @@ const leveldown = require('memdown')
 const collect = require('stream-collector')
 // const tradle = require('../')
 const changesFeed = require('changes-feed')
-const createAddressBook = require('../lib/addressBook')
+const createAddressBook = require('../lib/dbs/addressBook')
 const users = require('./fixtures/users')
 const utils = require('../lib/utils')
 const topics = require('../lib/topics')
 const constants = require('../lib/constants')
+const Actions = require('../lib/actions')
 const TYPE = constants.TYPE
 const PERMALINK = constants.PERMALINK
 const PREVLINK = constants.PREVLINK
@@ -22,23 +23,17 @@ const helpers = require('./helpers')
 
 test('ignore identities that collide on keys', function (t) {
   const ted = extend(users[0].pub) // defensive copy
-  const feed = helpers.nextFeed()
+  const changes = helpers.nextFeed()
   const badPerson = extend(ted, { name: 'evil ted' })
   const tedHash = 'abc'
   const badPersonHash = 'efg'
   const keeper = helpers.nextDB()
-  keeper.batch([
-    {
-      type: 'put',
-      key: tedHash,
-      value: ted
-    },
-    {
-      type: 'put',
-      key: badPersonHash,
-      value: badPerson
-    }
-  ], start)
+  const keyValMap = {
+    [tedHash]: ted,
+    [badPersonHash]: badPerson
+  }
+
+  keeper.batch(utils.mapToBatch(keyValMap), start)
 
   // const tedFromChain = new Entry({
   //     type: EventType.chain.readSuccess
@@ -56,22 +51,15 @@ test('ignore identities that collide on keys', function (t) {
 
   const db = helpers.nextDB()
   const identities = createAddressBook({
-    changes: feed,
+    changes: changes,
     keeper: keeper,
     db: db
   })
 
-  feed.append({
-    topic: topics.addcontact,
-    permalink: tedHash,
-    link: tedHash
-  })
+  const actions = Actions({ changes })
 
-  feed.append({
-    topic: topics.addcontact,
-    permalink: badPersonHash,
-    link: badPersonHash
-  })
+  actions.addContact(ted, tedHash)
+  actions.addContact(badPerson, badPersonHash)
 
   function start (err) {
     if (err) throw err
@@ -88,7 +76,7 @@ test('ignore identities that collide on keys', function (t) {
           t.same(identityInfo, {
             permalink: tedHash,
             link: tedHash,
-            prevlink: undefined,
+            prevLink: undefined,
             object: ted
           })
 
@@ -141,7 +129,7 @@ test('update identity', function (t) {
   changes.append({
     topic: topics.addcontact,
     permalink: originalHash,
-    prevlink: originalHash,
+    prevLink: originalHash,
     link: updateHash
   })
 

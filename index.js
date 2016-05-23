@@ -4,8 +4,14 @@ tradle.keeper = require('./lib/keeper')
 tradle.sender = require('./lib/sender')
 tradle.sealer = require('./lib/sealer')
 tradle.sealwatch = require('./lib/sealwatch')
-tradle.addressBook = require('./lib/addressBook')
-tradle.objectDB = require('./lib/objectDB')
+tradle.dbs = {
+  object: require('./lib/dbs/objects'),
+  tx: require('./lib/dbs/txs'),
+  seals: require('./lib/dbs/seals'),
+  watches: require('./lib/dbs/watches'),
+  addressBook: require('./lib/dbs/addressBook')
+}
+
 tradle.queue = require('./lib/queue')
 tradle.verifier = require('./lib/verifier')
 tradle.types = require('./lib/types')

@@ -39,6 +39,7 @@
     "xtend": "^4.0.1"
   },
   "devDependencies": {
+    "@tradle/bitcoinjs-lib": "^1.6.0",
     "@tradle/identity": "^1.2.3",
     "@tradle/kiki": "^1.1.14",
     "@tradle/simple-wallet": "^1.2.0",

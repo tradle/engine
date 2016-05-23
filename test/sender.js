@@ -11,7 +11,7 @@ const SIG = constants.SIG
 const MESSAGE_TYPE = constants.TYPES.MESSAGE
 const topics = require('../lib/topics')
 const statuses = require('../lib/status')
-const createObjectDB = require('../lib/objectDB')
+const createObjectDB = require('../lib/dbs/objects')
 const createSender = require('../lib/sender')
 const utils = require('../lib/utils')
 const createActions = require('../lib/actions')
@@ -102,7 +102,7 @@ test('try again', function (t) {
         cb(null, {})
       }
     },
-    objectDB: objectDB,
+    db: objectDB,
     actions: actions
   })
 

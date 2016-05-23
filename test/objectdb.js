@@ -7,7 +7,7 @@ const leveldown = require('memdown')
 const collect = require('stream-collector')
 const Actions = require('../lib/actions')
 const constants = require('../lib/constants')
-const createObjectDB = require('../lib/objectDB')
+const createObjectDB = require('../lib/dbs/objects')
 const createSender = require('../lib/sender')
 const users = require('./fixtures/users')
 const utils = require('../lib/utils')
@@ -61,7 +61,7 @@ test('list objects', function (t) {
     object: keyValMap.a2,
     author: authorLink,
     permalink: 'a1',
-    prevlink: 'a1',
+    prevLink: 'a1',
     link: 'a2'
   })
 

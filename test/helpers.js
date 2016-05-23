@@ -1,6 +1,8 @@
 
 const leveldown = require('memdown')
 const changesFeed = require('changes-feed')
+const fakeWallet = require('@tradle/test-helpers').fakeWallet
+const Wallet = require('@tradle/simple-wallet')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE
@@ -16,10 +18,10 @@ exports.nextFeed = function nextFeed () {
   return changesFeed(helpers.nextDB())
 }
 
-exports.nextDB = function nextDB () {
-  return utils.levelup(helpers.nextDBName(), {
-    db: leveldown
-  })
+exports.nextDB = function nextDB (opts) {
+  opts = opts || {}
+  if (!opts.leveldown) opts.db = leveldown
+  return utils.levelup(helpers.nextDBName(), opts)
 }
 
 exports.keeper = function keeper () {
@@ -35,6 +37,26 @@ exports.dummyIdentity = function (authorLink) {
     link: authorLink,
     permalink: authorLink
   }
+}
+
+exports.transactor = function (key, blockchain) {
+  const wallet = helpers.wallet(key, blockchain)
+  const transactor = Wallet.transactor({ wallet })
+  transactor.blockchain = wallet.blockchain
+  return transactor
+}
+
+exports.wallet = function (key, blockchain) {
+  var unspents = []
+  for (var i = 0; i < 20; i++) {
+    unspents.push(100000)
+  }
+
+  return fakeWallet({
+    blockchain: blockchain,
+    unspents: unspents,
+    priv: key
+  })
 }
 
 process.on('uncaughtException', function (err) {

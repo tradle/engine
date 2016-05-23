@@ -4,6 +4,7 @@ const test = require('tape')
 const extend = require('xtend')
 const protocol = require('@tradle/protocol')
 const constants = require('../lib/constants')
+const SIG = constants.SIG
 const PERMALINK = constants.PERMALINK
 const PREVLINK = constants.PREVLINK
 const LINK = constants.LINK
@@ -11,34 +12,29 @@ const TYPE = constants.TYPE
 const MESSAGE_TYPE = constants.TYPES.MESSAGE
 const topics = require('../lib/topics')
 const statuses = require('../lib/status')
-const createObjectDB = require('../lib/objectDB')
+const createSealDB = require('../lib/dbs/seals')
+const createObjectDB = require('../lib/dbs/objects')
 const createSealer = require('../lib/sealer')
 const utils = require('../lib/utils')
 const Actions = require('../lib/actions')
 const helpers = require('./helpers')
 
 test('seal', function (t) {
-  t.plan(2)
+  t.plan(4)
 
-  // const keyToVal = {
-  //   a1: {
-  //     // recipientPubKey:
-  //     [TYPE]: MESSAGE_TYPE,
-  //     a: 1
-  //   },
-  //   b1: {
-  //     [TYPE]: 'something else',
-  //     b: 1
-  //   },
-  //   c1: {
-  //     [TYPE]: MESSAGE_TYPE,
-  //     c: 1
-  //   }
-  // }
+  const permalink = 'a1'
+  const link = permalink
+  const keyToVal = {
+    [link]: {
+      [TYPE]: 'something',
+      [SIG]: 'blah',
+      prop: 'val'
+    }
+  }
 
   const keeper = helpers.nextDB()
-  // const batch = utils.mapToBatch(keyToVal)
-  // keeper.batch(batch, start)
+  const batch = utils.mapToBatch(keyToVal)
+  keeper.batch(batch)
 
   const alice = 'alice'
   const authorLink = 'bob'
@@ -46,6 +42,13 @@ test('seal', function (t) {
 
   const changes = helpers.nextFeed()
   const actions = Actions({ changes: changes })
+
+  const sealDB = createSealDB({
+    changes: changes,
+    keeper: keeper,
+    db: helpers.nextDB(),
+    me: bob
+  })
 
   const objectDB = createObjectDB({
     changes: changes,
@@ -57,8 +60,6 @@ test('seal', function (t) {
   const basePubKey = protocol.genECKey()
   const sealPubKey = protocol.genECKey()
   const sealPrevPubKey = protocol.genECKey()
-  const permalink = 'a1'
-  const link = permalink
   const networkName = 'testnet'
   const amount = 20000
   const wrapper = {
@@ -70,7 +71,14 @@ test('seal', function (t) {
     amount
   }
 
-  actions.createSeal(wrapper)
+  actions.createObject({
+    object: keyToVal[link],
+    author: authorLink,
+    permalink: link,
+    link: link
+  })
+
+  actions.writeSeal(wrapper)
 
   let failedOnce
   // const unsealed = batch.map(row => row.value).filter(val => val[TYPE] === MESSAGE_TYPE)
@@ -96,23 +104,22 @@ test('seal', function (t) {
         })
       }
     },
-    objectDB: objectDB,
+    seals: sealDB,
     actions: actions
   })
 
-  objectDB.on('wroteseal', function (wrapper) {
-    objectDB.byUID(utils.sealUID(wrapper), function (err, wrapper) {
+  sealDB.on('wroteseal', function (seal) {
+    sealDB.get(seal.uid, function (err, wrapper) {
       if (err) throw err
 
-      t.equal(wrapper.sealstatus, statuses.seal.sealed)
+      t.equal(wrapper.status, statuses.seal.sealed)
     })
   })
 
-  start()
+  objectDB.on('wroteseal', function (wrapper) {
+    t.equal(wrapper.link, link)
+    t.equal(wrapper.sealstatus, statuses.seal.sealed)
+  })
 
-  function start (err) {
-    if (err) throw err
-
-    sealer.start()
-  }
+  sealer.start()
 })
