@@ -1,4 +1,6 @@
 
+const crypto = require('crypto')
+const extend = require('xtend')
 const leveldown = require('memdown')
 const changesFeed = require('changes-feed')
 const fakeWallet = require('@tradle/test-helpers').fakeWallet
@@ -24,9 +26,7 @@ exports.nextDB = function nextDB (opts) {
   return utils.levelup(helpers.nextDBName(), opts)
 }
 
-exports.keeper = function keeper () {
-  return helpers.nextDB()
-}
+exports.keeper = exports.nextDB
 
 exports.dummyIdentity = function (authorLink) {
   return {

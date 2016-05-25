@@ -47,14 +47,14 @@ test('seal', function (t) {
     changes: changes,
     keeper: keeper,
     db: helpers.nextDB(),
-    me: bob
+    identityInfo: bob
   })
 
   const objectDB = createObjectDB({
     changes: changes,
     keeper: keeper,
     db: helpers.nextDB(),
-    me: bob
+    identityInfo: bob
   })
 
   const basePubKey = protocol.genECKey()

@@ -27,7 +27,7 @@ test('ignore identities that collide on keys', function (t) {
   const badPerson = extend(ted, { name: 'evil ted' })
   const tedHash = 'abc'
   const badPersonHash = 'efg'
-  const keeper = helpers.nextDB()
+  const keeper = helpers.keeper()
   const keyValMap = {
     [tedHash]: ted,
     [badPersonHash]: badPerson
@@ -89,8 +89,6 @@ test('ignore identities that collide on keys', function (t) {
 
 test('update identity', function (t) {
   const changes = helpers.nextFeed()
-
-
   const originalHash = 'abc'
   const updateHash = 'abc1'
 
@@ -99,7 +97,7 @@ test('update identity', function (t) {
   newTed[PREVLINK] = newTed[PERMALINK] = originalHash
   newTed.name = 'ted!'
 
-  const keeper = helpers.nextDB()
+  const keeper = helpers.keeper()
   keeper.batch([
     {
       type: 'put',

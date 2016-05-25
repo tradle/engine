@@ -58,7 +58,7 @@ test('try again', function (t) {
     keeper: keeper,
     db: helpers.nextDB(),
     changes: changes,
-    me: bob
+    identityInfo: bob
   })
 
   actions.createObject({

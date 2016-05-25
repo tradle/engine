@@ -10,7 +10,6 @@ const kiki = require('@tradle/kiki')
 const utils = require('../lib/utils')
 const users = require('./fixtures/users')
 const helpers = require('./helpers')
-const fakeWallet = testHelpers.fakeWallet
 const DEFAULT_NETWORK_NAME = 'testnet'
 const Node = require('../lib/node')
 const noop = () => {}
@@ -33,8 +32,9 @@ test('basic', function (t) {
     if (err) throw err
 
     setTimeout(function () {
-      alice._ixf.index.createReadStream('type', {eq:'tradle.Identity'})
-      .on('data', console.log)
+      alice.addressBook.createReadStream()
+        .on('data', console.log)
+        // .on('end', console.log)
     }, 200)
 
     // const obj = {
@@ -97,21 +97,6 @@ function createNode (opts) {
   })
 
   return new Node(opts)
-}
-
-function walletFor (keys, blockchain) {
-  var unspents = []
-  for (var i = 0; i < 20; i++) {
-    unspents.push(100000)
-  }
-
-  return fakeWallet({
-    blockchain: blockchain,
-    unspents: unspents,
-    priv: utils.find(keys, key => {
-      return key.type() === 'bitcoin' && key.get('purpose') === 'messaging'
-    }).priv()
-  })
 }
 
 function nextDir () {
