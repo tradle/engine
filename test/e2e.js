@@ -12,6 +12,8 @@ const users = require('./fixtures/users')
 const helpers = require('./helpers')
 const DEFAULT_NETWORK_NAME = 'testnet'
 const Node = require('../lib/node')
+const constants = require('../lib/constants')
+const TYPE = constants.TYPE
 const noop = () => {}
 let INSTANCE_COUNT = 0
 
@@ -31,28 +33,30 @@ test('basic', function (t) {
   meet([alice, bob], err => {
     if (err) throw err
 
-    setTimeout(function () {
-      alice.addressBook.createReadStream()
-        .on('data', console.log)
-        // .on('end', console.log)
-    }, 200)
+    // setTimeout(function () {
+    //   alice.addressBook.createReadStream()
+    //     .on('data', console.log)
+    //     // .on('end', console.log)
+    // }, 200)
 
-    // const obj = {
-    //   a: 1,
-    //   b: 2
-    // }
+    const obj = {
+      [TYPE]: 'thang',
+      a: 1,
+      b: 2
+    }
 
-    // alice.sign(obj, err => {
-    //   if (err) throw err
+    alice.sign(obj, err => {
+      if (err) throw err
 
-    //   setTimeout(function () {
-    //     alice.send(obj, {
-    //       recipient: bob._recipientOpts,
-    //     }, err => {
-    //       if (err) throw err
-    //     })
-    //   }, 1000)
-    // })
+      setTimeout(function () {
+        alice.send({
+          object: obj,
+          recipient: bob._recipientOpts,
+        }, err => {
+          if (err) throw err
+        })
+      }, 100)
+    })
 
     alice.on('sent', info => {
       t.same(info.object, obj)
@@ -106,6 +110,7 @@ function nextDir () {
 function connect (people) {
   eachOther(people, function receiveOnSend (a, b) {
     a._send = function (recipientLink, msg, recipient, cb) {
+      console.log('yay!')
       b.receive(msg, recipient, cb)
     }
   })

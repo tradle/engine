@@ -102,7 +102,7 @@ test('try again', function (t) {
         cb(null, {})
       }
     },
-    db: objectDB,
+    objects: objectDB,
     actions: actions
   })
 

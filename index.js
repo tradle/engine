@@ -1,6 +1,6 @@
 
 const tradle = module.exports = exports
-tradle.keeper = require('./lib/keeper')
+// tradle.keeper = require('./lib/keeper')
 tradle.sender = require('./lib/sender')
 tradle.sealer = require('./lib/sealer')
 tradle.sealwatch = require('./lib/sealwatch')
