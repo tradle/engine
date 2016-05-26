@@ -75,13 +75,6 @@ test('try again', function (t) {
     author: authorLink
   })
 
-  actions.createObject({
-    object: keyToVal.c1,
-    permalink: 'c1',
-    link: 'c1',
-    author: authorLink
-  })
-
   let failedOnce
   const unsent = batch.map(row => row.value).filter(val => val[TYPE] === MESSAGE_TYPE)
   const sender = createSender({
@@ -118,5 +111,16 @@ test('try again', function (t) {
     if (err) throw err
 
     sender.start()
+
+    setTimeout(function () {
+      // check that live stream is working
+
+      actions.createObject({
+        object: keyToVal.c1,
+        permalink: 'c1',
+        link: 'c1',
+        author: authorLink
+      })
+    }, 100)
   }
 })

@@ -105,7 +105,6 @@ test('watch', function (t) {
     if (err) throw err
   })
 
-  const readSeal = actions.readSeal
   const createdActions = {}
 
   actions.on('newwatch', checkAction)
