@@ -93,7 +93,7 @@ function createNode (opts) {
   const blockchain = opts.blockchain || transactor.blockchain
   opts = extend(opts, {
     dir: opts.dir || nextDir(),
-    keeper: helpers.nextDB(),
+    keeper: helpers.keeper(),
     networkName: networkName,
     transactor: transactor,
     blockchain: blockchain,
@@ -109,9 +109,12 @@ function nextDir () {
 
 function connect (people) {
   eachOther(people, function receiveOnSend (a, b) {
-    a._send = function (recipientLink, msg, recipient, cb) {
-      console.log('yay!')
-      b.receive(msg, recipient, cb)
+    a._send = function (msg, recipient, cb) {
+      b.receive(msg, recipient, function (err) {
+        if (err) throw err
+
+        cb.apply(null, arguments)
+      })
     }
   })
 }

@@ -26,7 +26,21 @@ exports.nextDB = function nextDB (opts) {
   return utils.levelup(helpers.nextDBName(), opts)
 }
 
-exports.keeper = exports.nextDB
+exports.keeper = function () {
+  var db = helpers.nextDB()
+  // var map = {}
+  // db._memory = map
+  // db.on('batch', function (batch) {
+  //   console.log('put batch')
+  // })
+
+  // db.on('put', function (key, value) {
+  //   map[key] = value
+  //   console.log('put row', key)
+  // })
+
+  return db
+}
 
 exports.dummyIdentity = function (authorLink) {
   return {
