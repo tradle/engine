@@ -26,7 +26,8 @@ test('list objects', function (t) {
   const keyValMap = {
     a1: { a: 1, [TYPE]: 'fruit', [SIG]: 'bs' },
     b1: { b: 1, [TYPE]: 'fruit', [SIG]: 'bs' },
-    a2: { a: 2, [TYPE]: 'veggie', [SIG]: 'bs' }
+    a2: { a: 1, [TYPE]: 'fruit', [SIG]: 'bs', healthy: 'yes' },
+    c1: { c: 1, [TYPE]: 'veggie', [SIG]: 'bs', healthy: 'yes' }
   }
 
   keeper.batch(utils.mapToBatch(keyValMap), start)
@@ -65,17 +66,25 @@ test('list objects', function (t) {
     link: 'a2'
   })
 
+  actions.createObject({
+    object: keyValMap.c1,
+    author: authorLink,
+    permalink: 'c1',
+    prevLink: 'c1',
+    link: 'c1'
+  })
+
   function start (err) {
     if (err) throw err
 
     objDB.list(function (err, msgs) {
       if (err) throw err
 
-      t.same(msgs.map(m => m.object), [ keyValMap.a2, keyValMap.b1 ])
+      t.same(msgs.map(m => m.object), [ keyValMap.a2, keyValMap.b1, keyValMap.c1 ])
       objDB.list('fruit', function (err, msgs) {
         if (err) throw err
 
-        t.same(msgs.map(m => m.object), [ keyValMap.b1 ])
+        t.same(msgs.map(m => m.object), [ keyValMap.a2, keyValMap.b1 ])
 
         objDB.byPermalink('a1', function (err, wrapper) {
           if (err) throw err
