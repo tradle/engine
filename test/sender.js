@@ -16,6 +16,7 @@ const createSender = require('../lib/sender')
 const utils = require('../lib/utils')
 const createActions = require('../lib/actions')
 const helpers = require('./helpers')
+const users = require('./fixtures/users')
 
 test('try again', function (t) {
   t.plan(5)
@@ -25,21 +26,42 @@ test('try again', function (t) {
   //   b: { hello: 'alice' }
   // ]
 
+  // const bob = users[0]
+  // protocol.message({ object, author, recipientPubKey }, done)
+  const alicePubKey = {
+    curve: 'blah',
+    pub: new Buffer('hey ho')
+  }
+
+  const bobPubKey = {
+    curve: 'blah2',
+    pub: new Buffer('hey ho2')
+  }
+
   const keyToVal = {
     a1: {
-      // recipientPubKey:
+      recipientPubKey: alicePubKey,
+      authorPubKey: bobPubKey,
       [TYPE]: MESSAGE_TYPE,
-      [SIG]: 'bs1',
-      a: 1
+      [SIG]: {
+        pubKey: bobPubKey,
+        sig: new Buffer('bs sig1'),
+      },
+      a: 1,
     },
     b1: {
       [TYPE]: 'something else',
       [SIG]: 'bs2',
-      b: 1
+      b: 1,
     },
     c1: {
+      recipientPubKey: alicePubKey,
+      authorPubKey: bobPubKey,
       [TYPE]: MESSAGE_TYPE,
-      [SIG]: 'bs3',
+      [SIG]: {
+        pubKey: bobPubKey,
+        sig: new Buffer('bs sig2'),
+      },
       c: 1
     }
   }
