@@ -71,7 +71,7 @@ test('list objects', function (t) {
     objDB.list(function (err, msgs) {
       if (err) throw err
 
-      t.same(msgs.map(m => m.object), [ keyValMap.b1, keyValMap.a2 ])
+      t.same(msgs.map(m => m.object), [ keyValMap.a2, keyValMap.b1 ])
       objDB.list('fruit', function (err, msgs) {
         if (err) throw err
 
