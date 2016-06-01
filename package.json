@@ -9,6 +9,7 @@
   "author": "Mark Vayngrib <mark@tradle.io> (http://github.com/mvayngrib)",
   "license": "MIT",
   "dependencies": {
+    "@tradle/bitcoinjs-lib": "^1.6.0",
     "@tradle/constants": "^2.0.3",
     "@tradle/offline-keeper": "^3.1.1",
     "@tradle/protocol": "file:../tradle-protocol",

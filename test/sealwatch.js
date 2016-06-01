@@ -3,7 +3,7 @@
 const test = require('tape')
 const extend = require('xtend')
 const protocol = require('@tradle/protocol')
-const createChainTracker = require('chain-tracker')
+// const createChainTracker = require('chain-tracker')
 const bitcoin = require('@tradle/bitcoinjs-lib')
 const constants = require('../lib/constants')
 const watchTypes = constants.watchType
@@ -55,12 +55,12 @@ test('watch', function (t) {
   const actions = Actions({ changes: changes })
 
   const transactor = helpers.transactor(bobKeyWIF)
-  const chaintracker =  createChainTracker({
-    db: helpers.nextDB({ valueEncoding: 'json' }),
-    blockchain: transactor.blockchain,
-    networkName: networkName,
-    confirmedAfter: 10 // stop tracking a tx after 10 blocks
-  })
+  // const chaintracker =  createChainTracker({
+  //   db: helpers.nextDB({ valueEncoding: 'json' }),
+  //   blockchain: transactor.blockchain,
+  //   networkName: networkName,
+  //   confirmedAfter: 10 // stop tracking a tx after 10 blocks
+  // })
 
   const watchDB = createWatchDB({
     changes: changes,
@@ -70,16 +70,15 @@ test('watch', function (t) {
 
   const sealwatch = createSealWatch({
     actions: actions,
-    chaintracker: chaintracker,
+    // chaintracker: chaintracker,
+    blockchain: transactor.blockchain,
+    networkName: networkName,
     db: helpers.nextDB(),
     watches: watchDB,
     syncInterval: 200
   })
 
-  sealwatch.on('error', function (err) {
-    throw err
-  })
-
+  sealwatch.on('error', rethrow)
   sealwatch.start()
 
   const basePubKey = protocol.genECKey()
@@ -101,9 +100,7 @@ test('watch', function (t) {
         amount: 10000
       }
     ]
-  }, function (err) {
-    if (err) throw err
-  })
+  }, rethrow)
 
   const createdActions = {}
 
@@ -121,3 +118,7 @@ test('watch', function (t) {
     t.notOk(createdActions[action.topic])
   }
 })
+
+function rethrow (err) {
+  if (err) throw err
+}
