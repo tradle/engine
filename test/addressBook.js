@@ -116,7 +116,12 @@ test('update identity', function (t) {
     leveldown: leveldown,
     changes: changes,
     keeper: keeper,
-    db: helpers.nextDB()
+    db: helpers.nextDB(),
+    identityInfo: {
+      object: ted,
+      link: originalHash,
+      permalink: originalHash
+    }
   })
 
   const actions = createActions({ changes })

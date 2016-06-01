@@ -11,15 +11,10 @@ const kiki = require('@tradle/kiki')
 const utils = require('../lib/utils')
 const users = require('./fixtures/users')
 const helpers = require('./helpers')
-const DEFAULT_NETWORK_NAME = 'testnet'
+const contexts = require('./contexts')
 const Node = require('../lib/node')
 const constants = require('../lib/constants')
 const Queue = require('../lib/queue')
-// Queue.DEFAULT_BACKOFF_OPTS = {
-//   initialDelay: 60 * 1000 * 1000, // foreverish
-//   maxDelay: 60 * 1000 * 1000 * 1000
-// }
-
 const SHORT_BACKOFF_OPTS = {
   initialDelay: 10,
   maxDelay: 1000
@@ -30,62 +25,56 @@ const LONG_BACKOFF_OPTS = {
   maxDelay: 60 * 1000 * 1000 * 1000
 }
 
+Queue.DEFAULT_BACKOFF_OPTS = SHORT_BACKOFF_OPTS
+const names = helpers.names
 const TYPE = constants.TYPE
 const noop = () => {}
 let INSTANCE_COUNT = 0
 
 test('self in address book', function (t) {
+  // TODO: should be stricter
+  // self should be in addressBook immediately
   t.timeoutAfter(1000)
 
-  const tradle = createNode(userToOpts(users[0]))
-  tradle.actions.once('addcontact', function () {
-    tradle.addressBook.lookupIdentity(tradle.identityInfo.link, function (err, identityInfo) {
+  const alice = contexts.nUsers(1)
+  alice.actions.once('addcontact', function () {
+    alice.addressBook.lookupIdentity(alice.identityInfo.link, function (err, identityInfo) {
       if (err) throw err
 
       delete identityInfo.timestamp
-      t.same(tradle.identityInfo, identityInfo)
-      tradle.destroy()
+      t.same(alice.identityInfo, identityInfo)
+      alice.destroy()
       t.end()
     })
   })
 })
 
-test('basic', function (t) {
+// test('unchained self', function (t) {
+
+// })
+
+test('basic send/receive', function (t) {
   let blockchain
-  let backoffOpts = Queue.DEFAULT_BACKOFF_OPTS
-  Queue.DEFAULT_BACKOFF_OPTS = SHORT_BACKOFF_OPTS
-  const tradles = users.slice(0, 2).map(user => {
-    const node = createNode(userToOpts(user))
-
-    if (!blockchain) blockchain = node.blockchain
-
-    return node
-  })
-
-  const alice = tradles[0]
-  alice.name = 'alice'
-  const bob = tradles[1]
-  bob.name = 'bob'
-  const aInfo = { link: alice.identityInfo.link }
-  let numTries = 0
-
-  alice._send = function (msg, recipient, cb) {
-    if (++numTries < 5) {
-      t.pass('failed on purpose retrying...')
-      return cb(new Error('oops'))
-    }
-
-    bob.receive(msg, aInfo, function (err) {
-      if (err) throw err
-
-      cb.apply(null, arguments)
-    })
-  }
-
-
-  // connect([alice, bob])
-  meet([alice, bob], err => {
+  contexts.twoFriends(function (err, friends) {
     if (err) throw err
+
+    const alice = friends[0]
+    const bob = friends[1]
+    const aInfo = { link: alice.identityInfo.link }
+    let numTries = 0
+
+    alice._send = function (msg, recipient, cb) {
+      if (++numTries < 5) {
+        t.pass('failed on purpose retrying...')
+        return cb(new Error('oops'))
+      }
+
+      bob.receive(msg, aInfo, function (err) {
+        if (err) throw err
+
+        cb.apply(null, arguments)
+      })
+    }
 
     // setTimeout(function () {
     //   alice.addressBook.createReadStream()
@@ -99,14 +88,10 @@ test('basic', function (t) {
       b: 2
     }
 
-    alice.sign(obj, err => {
-      if (err) throw err
-
-      alice.send({
-        object: obj,
-        recipient: bob._recipientOpts,
-      }, rethrow)
-    })
+    alice.signNSend({
+      object: obj,
+      recipient: bob._recipientOpts,
+    }, rethrow)
 
     alice.on('sent', wrapper => {
       t.same(wrapper.object.object, obj)
@@ -117,85 +102,38 @@ test('basic', function (t) {
 
       alice.destroy()
       bob.destroy()
-      Queue.DEFAULT_BACKOFF_OPTS = backoffOpts
       t.end()
     })
   })
 })
 
-// function fakechain () {
-//   const blocks = []
-//   return {
-//     addresses: {
-//       transactions: function (addrs, blockHeight, cb) {
+test.only('basic seals', function (t) {
+  // t.timeoutAfter(1000)
+  t.plan(3)
+  contexts.twoFriendsMessageSentReceived(function (err, result) {
+    if (err) throw err
 
-//       }
-//     },
-//     transactions: {
-//       propagate: function (tx, cb) {
+    const friends = result.friends
+    const alice = friends[0]
+    const bob = friends[1]
 
-//       }
-//     },
-//     unspents:
-//   }
-// }
+    // console.log(result.sent)
+    alice.seal(result.sent, rethrow)
+    alice.on('wroteseal', seal => t.pass('alice wrote seal'))
+    alice.on('readseal', seal => {
+      t.pass('alice read seal')
+      clearInterval(aInterval)
+      bob.watchSeal({
+        link: seal.link,
+        basePubKey: alice.chainPubKey
+      }, rethrow)
+    })
 
-function createNode (opts) {
-  const networkName = opts.networkName || DEFAULT_NETWORK_NAME
-  const priv = utils.chainKey(opts.keys).exportPrivate().priv
-  const transactor = opts.transactor || helpers.transactor(priv, opts.blockchain)
-  const blockchain = opts.blockchain || transactor.blockchain
-  opts = extend(opts, {
-    dir: opts.dir || nextDir(),
-    keeper: helpers.keeper(),
-    networkName: networkName,
-    transactor: transactor,
-    blockchain: blockchain,
-    leveldown: opts.leveldown || memdown,
+    bob.on('readseal', seal => t.pass('bob read seal'))
+    const aInterval = setInterval(() => alice.sync(), 100).unref()
+    const bInterval = setInterval(() => bob.sync(), 100).unref()
   })
-
-  return new Node(opts)
-}
-
-function nextDir () {
-  return `./testdir/${INSTANCE_COUNT++}.db`
-}
-
-function connect (people) {
-  eachOther(people, function receiveOnSend (a, b) {
-    var aInfo = { link: a.identityInfo.link }
-    a._send = function (msg, recipient, cb) {
-      b.receive(msg, aInfo, function (err) {
-        if (err) throw err
-
-        cb.apply(null, arguments)
-      })
-    }
-  })
-}
-
-function meet (people, cb) {
-  eachOther(people, (a, b, done) => a.addContact(b.identity, done), cb)
-}
-
-function eachOther (args, fn, cb) {
-  async.parallel(args.map(a => {
-    return done => {
-      args.forEach(b => {
-        if (a !== b) {
-          fn(a, b, done)
-        }
-      })
-    }
-  }), cb || noop)
-}
-
-function userToOpts (user) {
-  return {
-    identity: user.pub,
-    keys: user.priv.map(key => kiki.toKey(key))
-  }
-}
+})
 
 function rethrow (err) {
   if (err) throw err

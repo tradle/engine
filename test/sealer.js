@@ -78,11 +78,10 @@ test('seal', function (t) {
     link: link
   })
 
-  actions.writeSeal(wrapper)
-
   let failedOnce
   // const unsealed = batch.map(row => row.value).filter(val => val[TYPE] === MESSAGE_TYPE)
   const sealer = createSealer({
+    networkName: networkName,
     transactor: {
       send: function (to, cb) {
         t.same(to, {
@@ -122,4 +121,8 @@ test('seal', function (t) {
   })
 
   sealer.start()
+  setTimeout(function () {
+    // test live
+    actions.writeSeal(wrapper)
+  }, 100)
 })
