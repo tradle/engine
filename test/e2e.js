@@ -1,5 +1,6 @@
 'use strict'
 
+// const WHY = require('why-is-node-running')
 const test = require('tape')
 const extend = require('xtend')
 const memdown = require('memdown')
@@ -13,12 +14,46 @@ const helpers = require('./helpers')
 const DEFAULT_NETWORK_NAME = 'testnet'
 const Node = require('../lib/node')
 const constants = require('../lib/constants')
+const Queue = require('../lib/queue')
+// Queue.DEFAULT_BACKOFF_OPTS = {
+//   initialDelay: 60 * 1000 * 1000, // foreverish
+//   maxDelay: 60 * 1000 * 1000 * 1000
+// }
+
+const SHORT_BACKOFF_OPTS = {
+  initialDelay: 10,
+  maxDelay: 1000
+}
+
+const LONG_BACKOFF_OPTS = {
+  initialDelay: 60 * 1000 * 1000, // foreverish
+  maxDelay: 60 * 1000 * 1000 * 1000
+}
+
 const TYPE = constants.TYPE
 const noop = () => {}
 let INSTANCE_COUNT = 0
 
+test('self in address book', function (t) {
+  t.timeoutAfter(1000)
+
+  const tradle = createNode(userToOpts(users[0]))
+  tradle.actions.once('addcontact', function () {
+    tradle.addressBook.lookupIdentity(tradle.identityInfo.link, function (err, identityInfo) {
+      if (err) throw err
+
+      delete identityInfo.timestamp
+      t.same(tradle.identityInfo, identityInfo)
+      tradle.destroy()
+      t.end()
+    })
+  })
+})
+
 test('basic', function (t) {
   let blockchain
+  let backoffOpts = Queue.DEFAULT_BACKOFF_OPTS
+  Queue.DEFAULT_BACKOFF_OPTS = SHORT_BACKOFF_OPTS
   const tradles = users.slice(0, 2).map(user => {
     const node = createNode(userToOpts(user))
 
@@ -28,8 +63,27 @@ test('basic', function (t) {
   })
 
   const alice = tradles[0]
+  alice.name = 'alice'
   const bob = tradles[1]
-  connect([alice, bob])
+  bob.name = 'bob'
+  const aInfo = { link: alice.identityInfo.link }
+  let numTries = 0
+
+  alice._send = function (msg, recipient, cb) {
+    if (++numTries < 5) {
+      t.pass('failed on purpose retrying...')
+      return cb(new Error('oops'))
+    }
+
+    bob.receive(msg, aInfo, function (err) {
+      if (err) throw err
+
+      cb.apply(null, arguments)
+    })
+  }
+
+
+  // connect([alice, bob])
   meet([alice, bob], err => {
     if (err) throw err
 
@@ -48,22 +102,22 @@ test('basic', function (t) {
     alice.sign(obj, err => {
       if (err) throw err
 
-      setTimeout(function () {
-        alice.send({
-          object: obj,
-          recipient: bob._recipientOpts,
-        }, err => {
-          if (err) throw err
-        })
-      }, 100)
+      alice.send({
+        object: obj,
+        recipient: bob._recipientOpts,
+      }, rethrow)
     })
 
-    alice.on('sent', info => {
-      t.same(info.object, obj)
+    alice.on('sent', wrapper => {
+      t.same(wrapper.object.object, obj)
     })
 
-    bob.on('message', info => {
-      t.same(info.object, obj)
+    bob.on('message', wrapper => {
+      t.same(wrapper.object.object, obj)
+
+      alice.destroy()
+      bob.destroy()
+      Queue.DEFAULT_BACKOFF_OPTS = backoffOpts
       t.end()
     })
   })
@@ -109,8 +163,9 @@ function nextDir () {
 
 function connect (people) {
   eachOther(people, function receiveOnSend (a, b) {
+    var aInfo = { link: a.identityInfo.link }
     a._send = function (msg, recipient, cb) {
-      b.receive(msg, recipient, function (err) {
+      b.receive(msg, aInfo, function (err) {
         if (err) throw err
 
         cb.apply(null, arguments)
@@ -140,4 +195,8 @@ function userToOpts (user) {
     identity: user.pub,
     keys: user.priv.map(key => kiki.toKey(key))
   }
+}
+
+function rethrow (err) {
+  if (err) throw err
 }
