@@ -2,6 +2,9 @@
 
 const test = require('tape')
 const extend = require('xtend')
+const async = require('async')
+const createBackoff = require('backoff')
+const protocol = require('@tradle/protocol')
 const constants = require('../lib/constants')
 const PERMALINK = constants.PERMALINK
 const PREVLINK = constants.PREVLINK
@@ -19,50 +22,39 @@ const helpers = require('./helpers')
 const users = require('./fixtures/users')
 
 test('try again', function (t) {
-  t.plan(5)
+  t.plan(8)
 
-  // const msgs = [
-  //   a: { hello: 'world' },
-  //   b: { hello: 'alice' }
-  // ]
-
-  // const bob = users[0]
-  // protocol.message({ object, author, recipientPubKey }, done)
-  const alicePubKey = {
-    curve: 'blah',
-    pub: new Buffer('hey ho')
-  }
-
-  const bobPubKey = {
-    curve: 'blah2',
-    pub: new Buffer('hey ho2')
-  }
-
-  const keyToVal = {
-    a1: {
-      recipientPubKey: alicePubKey,
-      authorPubKey: bobPubKey,
-      [TYPE]: MESSAGE_TYPE,
-      [SIG]: 'bs sig1',
-      a: 1,
-    },
-    b1: {
-      [TYPE]: 'something else',
-      [SIG]: 'bs2',
-      b: 1,
-    },
-    c1: {
-      recipientPubKey: alicePubKey,
-      authorPubKey: bobPubKey,
-      [TYPE]: MESSAGE_TYPE,
-      [SIG]: 'bs sig2',
-      c: 1
+  const aliceKey = protocol.genECKey()
+  const alicePubKey = utils.omit(aliceKey, 'priv')
+  const bobKey = protocol.genECKey()
+  const bobPubKey = utils.omit(bobKey, 'priv')
+  const bobAuthorObj = {
+    sigPubKey: bobPubKey,
+    sign: function (data, cb) {
+      cb(null, utils.sign(data, bobKey))
     }
   }
 
-  const keeper = helpers.nextDB()
-  const batch = utils.mapToBatch(keyToVal)
-  keeper.batch(batch, start)
+  const objs = [
+    {
+      [TYPE]: MESSAGE_TYPE,
+      recipientPubKey: alicePubKey,
+      object: {
+        a: 1
+      }
+    },
+    {
+      [TYPE]: 'something else',
+      b: 1
+    },
+    {
+      [TYPE]: MESSAGE_TYPE,
+      recipientPubKey: alicePubKey,
+      object: {
+        c: 1
+      }
+    }
+  ]
 
   const authorLink = 'bob'
   const bob = helpers.dummyIdentity(authorLink)
@@ -70,6 +62,7 @@ test('try again', function (t) {
   const changes = helpers.nextFeed()
   const actions = createActions({ changes })
 
+  const keeper = helpers.keeper()
   const objectDB = createObjectDB({
     keeper: keeper,
     db: helpers.nextDB(),
@@ -77,34 +70,24 @@ test('try again', function (t) {
     identityInfo: bob
   })
 
-  actions.createObject({
-    object: keyToVal.a1,
-    permalink: 'a1',
-    link: 'a1',
-    author: authorLink
-  })
+  const keyToVal = {}
+  async.each(objs, create, start)
 
-  actions.createObject({
-    object: keyToVal.b1,
-    permalink: 'b1',
-    link: 'b1',
-    author: authorLink
-  })
-
-  let failedOnce
-  const unsent = batch.map(row => row.value).filter(val => val[TYPE] === MESSAGE_TYPE)
+  // const unsent = batch.map(row => row.value).filter(val => val[TYPE] === MESSAGE_TYPE)
+  let failuresToGo = 3
+  const unsent = objs.filter(obj => obj[TYPE] === MESSAGE_TYPE)
   const sender = createSender({
     send: function (msg, recipient, cb) {
-      t.same(JSON.parse(msg), unsent[0])
-      if (failedOnce) {
+      // 2 + 3 times
+      msg = protocol.unserializeMessage(msg)
+      t.same(msg, unsent[0])
+      if (--failuresToGo <= 0) {
         unsent.shift()
         return cb()
       }
 
-      failedOnce = true
       cb(new Error('no one was home'))
     },
-    keeper: keeper,
     addressBook: {
       // fake address book that does nothing
       byPubKey: function (identifier, cb) {
@@ -112,13 +95,18 @@ test('try again', function (t) {
       }
     },
     objects: objectDB,
-    actions: actions
+    actions: actions,
+    backoff: createBackoff.exponential({
+      initialDelay: 100,
+      maxDelay: 1000
+    })
   })
 
   objectDB.on('sent', function (wrapper) {
-    objectDB.byUID(wrapper.uid, function (err, wrapper) {
+    objectDB.get(wrapper.link, function (err, wrapper) {
       if (err) throw err
 
+      // 3 times
       t.equal(wrapper.sendstatus, statuses.send.sent)
     })
   })
@@ -131,12 +119,38 @@ test('try again', function (t) {
     setTimeout(function () {
       // check that live stream is working
 
-      actions.createObject({
-        object: keyToVal.c1,
-        permalink: 'c1',
-        link: 'c1',
-        author: authorLink
-      })
+      let obj = {
+        [TYPE]: MESSAGE_TYPE,
+        recipientPubKey: alicePubKey,
+        object: {
+          d: 1
+        }
+      }
+
+      unsent.push(obj)
+      create(obj)
     }, 100)
   }
+
+  function create (object, cb) {
+    protocol.sign({
+      object: object,
+      author: bobAuthorObj
+    }, function (err) {
+      if (err) throw err
+
+      const wrapper = { object, author: authorLink }
+      utils.addLinks(wrapper)
+      keyToVal[wrapper.link] = object
+      keeper.put(wrapper.link, object, err => {
+        if (err) throw err
+
+        actions.createObject(wrapper, cb)
+      })
+    })
+  }
 })
+
+function rethrow (err) {
+  if (err) throw err
+}

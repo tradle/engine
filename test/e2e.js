@@ -52,10 +52,12 @@ test('self in address book', function (t) {
 })
 
 test('`createObject`', function (t) {
+  t.plan(5)
   t.timeoutAfter(1000)
 
   const alice = contexts.nUsers(1)[0]
   const object = { [TYPE]: 'blah', a: 1 }
+  alice.actions.on('newobj', () => t.pass())
   alice.createObject({ object: utils.clone(object) }, err => {
     if (err) throw err
 
@@ -69,7 +71,8 @@ test('`createObject`', function (t) {
 
   alice.createObject({ object: utils.clone(object) }, err => {
     t.ok(err)
-    t.equal(err.type, 'saving')
+    // t.equal(err.type, 'saving')
+    t.equal(err.type, 'exists')
   })
 })
 
