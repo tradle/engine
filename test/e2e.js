@@ -5,6 +5,7 @@ const test = require('tape')
 const extend = require('xtend')
 const memdown = require('memdown')
 const async = require('async')
+const collect = require('stream-collector')
 const Wallet = require('@tradle/simple-wallet')
 const testHelpers = require('@tradle/test-helpers')
 const kiki = require('@tradle/kiki')
@@ -208,6 +209,63 @@ test('detect next version', function (t) {
   })
 })
 
+test('conversation', function (t) {
+  contexts.twoFriends(function (err, friends) {
+    if (err) throw err
+
+    const alice = friends[0]
+    const bob = friends[1]
+    helpers.connect([alice, bob])
+    const toBob = { [TYPE]: 'hey', message: 'bob' }
+    const toAlice = { [TYPE]: 'hey', message: 'alice' }
+    async.parallel([
+      function aliceToBob (done) {
+        send(alice, bob, toBob, done)
+      },
+      function bobToAlice (done) {
+        send(bob, alice, toAlice, done)
+      }
+    ], function (err) {
+      if (err) throw err
+
+      const ab = alice.objects.conversation(alice.permalink, bob.permalink)
+      const ba = bob.objects.conversation(bob.permalink, alice.permalink)
+
+      async.parallel([
+        function aliceToBob (done) {
+          collect(ab, done)
+        },
+        function bobToAlice (done) {
+          collect(ba, done)
+        }
+      ], function (err, results) {
+        results = results.map(arr => arr.map(wrapper => wrapper.object.object))
+
+        t.same(results[0], [toBob])
+        t.same(results[1], [toAlice])
+        friends.forEach(friend => friend.destroy())
+        t.end()
+      })
+    })
+  })
+})
+
 function rethrow (err) {
   if (err) throw err
+}
+
+function send (from, to, object, cb) {
+  if (typeof object === 'function') {
+    cb = object
+    object = null
+  }
+
+  object = object || { [TYPE]: 'blah', a: 1 }
+  from.signNSend({
+    object: object,
+    author: from._senderOpts,
+    recipient: to._recipientOpts
+  }, rethrow)
+
+  to.on('message', message => cb(null, message))
 }

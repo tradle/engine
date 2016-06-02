@@ -16,6 +16,7 @@ const TYPE = constants.TYPE
 const IDENTITY_TYPE = constants.TYPES.IDENTITY
 const DEFAULT_NETWORK_NAME = 'testnet'
 const helpers = exports
+const noop = function () {}
 let dbCounter = 0
 let INSTANCE_COUNT = 0
 
