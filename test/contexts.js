@@ -12,7 +12,10 @@ exports.nUsers = function nUsers (n) {
   if (helpers.names.length < n) throw new Error('not enough names in fixtures')
 
   return users.slice(0, n).map((user, i) => {
-    const node = helpers.createNode(helpers.userToOpts(user, helpers.names[i]))
+    const opts = helpers.userToOpts(user, helpers.names[i])
+    opts.blockchain = blockchain
+
+    const node = helpers.createNode(opts)
 
     if (!blockchain) blockchain = node.blockchain
 
@@ -40,52 +43,100 @@ exports.twoFriends = function twoFriends (cb) {
 exports.twoFriendsMessageSentReceived = function (obj, cb) {
   if (typeof obj === 'function') {
     cb = obj
-    obj = {
-      [TYPE]: 'thang',
-      a: 1,
-      b: 2
-    }
+    obj = null
+  }
+
+  obj = obj || {
+    [TYPE]: 'thang',
+    a: 1,
+    b: 2
   }
 
   let blockchain
   contexts.twoFriends(function (err, friends) {
     if (err) return cb(err)
 
-    const alice = friends[0]
-    const bob = friends[1]
-    const aInfo = { link: alice.identityInfo.link }
+    const sender = friends[0]
+    const receiver = friends[1]
+    const aInfo = { link: sender.identityInfo.link }
     let numTries = 0
 
-    alice._send = function (msg, recipient, cb) {
-      bob.receive(msg, aInfo, function (err) {
+    sender._send = function (msg, recipient, cb) {
+      receiver.receive(msg, aInfo, function (err) {
         if (err) throw err
 
         cb.apply(null, arguments)
       })
     }
 
-    alice.signNSend({
+    sender.signNSend({
       object: obj,
-      recipient: bob._recipientOpts,
+      recipient: receiver._recipientOpts,
     }, rethrow)
 
     let togo = 2
-    const result = {
-      friends: friends
-    }
+    const result = { sender, receiver, friends }
 
-    alice.on('sent', wrapper => {
+    sender.on('sent', wrapper => {
       result.sent = wrapper
       done()
     })
 
-    bob.on('message', wrapper => {
+    receiver.on('message', wrapper => {
       result.message = wrapper
       done()
     })
 
     function done () {
       if (--togo === 0) cb(null, result)
+    }
+  })
+}
+
+exports.twoFriendsMessageSentReceivedSealed = function (opts, cb) {
+  contexts.twoFriendsMessageSentReceived(opts.object, function (err, result) {
+    if (err) throw err
+
+    const friends = result.friends
+    const alice = friends[0]
+    const bob = friends[1]
+
+    // console.log(result.sent)
+    const sealer = opts.sealer === 'sender' ? alice : bob
+    const auditor = sealer === alice ? bob : alice
+    sealer.seal({
+      link: result.sent.link,
+      basePubKey: sealer.chainPubKey
+    }, rethrow)
+
+    // alice.seal(result.sent, rethrow)
+    // bob.seal(result.message, rethrow)
+
+    sealer.once('wroteseal', seal => {
+      result.wroteseal = seal
+      done()
+    })
+
+    sealer.once('readseal', seal => {
+      result.readseal = seal
+      clearInterval(sealerInterval)
+      auditor.watchSeal({
+        link: seal.link,
+        basePubKey: sealer.chainPubKey
+      }, rethrow)
+    })
+
+    auditor.once('readseal', done)
+    const sealerInterval = setInterval(() => sealer.sync(), 100).unref()
+    const auditorInterval = setInterval(() => auditor.sync(), 100).unref()
+    let togo = 2
+
+    function done () {
+      if (--togo) return
+
+      clearInterval(sealerInterval)
+      clearInterval(auditorInterval)
+      cb(null, result)
     }
   })
 }

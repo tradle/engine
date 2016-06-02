@@ -114,7 +114,7 @@ test('queue', function (t) {
 
   const q = createQueue({
     worker: worker,
-    uniqueProperty: 'id',
+    primaryKey: 'id',
     backoff: backoff.exponential({
       initialDelay: 10,
       maxDelay: 100
@@ -148,6 +148,59 @@ test('queue', function (t) {
   //     })()
   //   }
   // })
+})
+
+test.only('lockify', function (t) {
+  t.timeoutAfter(1000)
+  let running = 0
+
+  const obj = {
+    a: function a (n, cb) {
+      t.equal(++running, 1)
+      setTimeout(function () {
+        cb(new Error('blah'))
+      }, 100)
+    },
+    b: function b (n, cb) {
+      t.equal(++running, 1)
+      setTimeout(function () {
+        cb(null, 'yay')
+      }, 50)
+    },
+    // not locked
+    c: function (n, cb) {
+      setTimeout(cb, 20)
+    }
+  }
+
+  utils.lockify(obj, ['a', 'b'])
+
+  var done = {}
+  obj.a('a', function (err) {
+    --running
+    t.equal(err.message, 'blah')
+    t.notOk(done.a)
+    t.notOk(done.b)
+    done.a = true
+  })
+
+  obj.a('a', function (err) {
+    --running
+    t.equal(err.message, 'blah')
+    t.ok(done.a)
+  })
+
+  obj.b('b', function (err, val) {
+    --running
+    t.ok(done.a)
+    t.equal(val, 'yay')
+    done.b = true
+    t.end()
+  })
+
+  obj.c('c', function () {
+    t.equal(Object.keys(done).length, 0)
+  })
 })
 
 // test('queue', function (t) {
