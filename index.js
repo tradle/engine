@@ -12,7 +12,7 @@ tradle.dbs = {
   addressBook: require('./lib/dbs/addressBook')
 }
 
-tradle.queue = require('./lib/queue')
+tradle.retrystream = require('./lib/retrystream')
 tradle.validator = require('./lib/validator')
 tradle.types = require('./lib/types')
 tradle.utils = require('./lib/utils')

@@ -6,7 +6,7 @@ const memdown = require('memdown')
 const levelup = require('levelup')
 const subdown = require('subleveldown')
 const Readable = require('readable-stream').Readable
-const createQueue = require('../lib/queue')
+const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
 
 test('pub key to address', function (t) {
@@ -112,7 +112,7 @@ test('queue', function (t) {
     }, 10)
   }
 
-  const q = createQueue({
+  const q = createRetryStream({
     worker: worker,
     primaryKey: 'id',
     backoff: backoff.exponential({
@@ -150,7 +150,7 @@ test('queue', function (t) {
   // })
 })
 
-test.only('lockify', function (t) {
+test('lockify', function (t) {
   t.timeoutAfter(1000)
   let running = 0
 
@@ -242,7 +242,7 @@ test.only('lockify', function (t) {
 //     }, 10)
 //   }
 
-//   const q = createQueue({
+//   const q = createRetryStream({
 //     worker: worker,
 //     backoff: backoff.exponential({
 //       initialDelay: 10,

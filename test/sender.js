@@ -43,10 +43,7 @@ test('try again', function (t) {
       recipientPubKey: alicePubKey,
       authorPubKey: bobPubKey,
       [TYPE]: MESSAGE_TYPE,
-      [SIG]: {
-        pubKey: bobPubKey,
-        sig: new Buffer('bs sig1'),
-      },
+      [SIG]: 'bs sig1',
       a: 1,
     },
     b1: {
@@ -58,10 +55,7 @@ test('try again', function (t) {
       recipientPubKey: alicePubKey,
       authorPubKey: bobPubKey,
       [TYPE]: MESSAGE_TYPE,
-      [SIG]: {
-        pubKey: bobPubKey,
-        sig: new Buffer('bs sig2'),
-      },
+      [SIG]: 'bs sig2',
       c: 1
     }
   }
@@ -113,7 +107,7 @@ test('try again', function (t) {
     keeper: keeper,
     addressBook: {
       // fake address book that does nothing
-      lookupIdentity: function (identifier, cb) {
+      byPubKey: function (identifier, cb) {
         cb(null, {})
       }
     },

@@ -75,6 +75,7 @@ test('watch', function (t) {
     networkName: networkName,
     db: helpers.nextDB(),
     watches: watchDB,
+    objects: {}, // don't actually need it yet
     syncInterval: 200
   })
 

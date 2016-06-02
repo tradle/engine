@@ -17,7 +17,7 @@ const Node = require('../lib/node')
 const constants = require('../lib/constants')
 const PREVLINK = constants.PREVLINK
 const TYPE = constants.TYPE
-const Queue = require('../lib/queue')
+const retrystream = require('../lib/retrystream')
 const SHORT_BACKOFF_OPTS = {
   initialDelay: 10,
   maxDelay: 1000
@@ -28,7 +28,7 @@ const LONG_BACKOFF_OPTS = {
   maxDelay: 60 * 1000 * 1000 * 1000
 }
 
-Queue.DEFAULT_BACKOFF_OPTS = SHORT_BACKOFF_OPTS
+retrystream.DEFAULT_BACKOFF_OPTS = SHORT_BACKOFF_OPTS
 const names = helpers.names
 const noop = () => {}
 let INSTANCE_COUNT = 0
@@ -153,7 +153,7 @@ test('receiver seals', function (t) {
   })
 })
 
-test.only('detect next version', function (t) {
+test('detect next version', function (t) {
   // t.timeoutAfter(1000)
   const v1 = {
     [TYPE]: 'blah',
