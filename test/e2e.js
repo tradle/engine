@@ -1,6 +1,7 @@
 'use strict'
 
 // const WHY = require('why-is-node-running')
+const deepEqual = require('deep-equal')
 const test = require('tape')
 const extend = require('xtend')
 const memdown = require('memdown')
@@ -45,6 +46,8 @@ test('self in address book', function (t) {
       if (err) throw err
 
       delete identityInfo.timestamp
+      // log entry identifier
+      delete identityInfo._
       t.same(alice.identityInfo, identityInfo)
       alice.destroy()
       t.end()
@@ -210,39 +213,53 @@ test('detect next version', function (t) {
 })
 
 test('conversation', function (t) {
-  contexts.twoFriends(function (err, friends) {
+  contexts.nFriends(3, function (err, friends) {
     if (err) throw err
 
-    const alice = friends[0]
-    const bob = friends[1]
-    helpers.connect([alice, bob])
-    const toBob = { [TYPE]: 'hey', message: 'bob' }
-    const toAlice = { [TYPE]: 'hey', message: 'alice' }
-    async.parallel([
-      function aliceToBob (done) {
-        helpers.send(alice, bob, toBob, done)
-      },
-      function bobToAlice (done) {
-        helpers.send(bob, alice, toAlice, done)
+    helpers.connect(friends)
+    const pairs = helpers.pairs(friends)
+    const tasks = pairs.map(pair => {
+      const obj = {
+        [TYPE]: 'blah',
+        from: pair[0].name,
+        to: pair[1].name
       }
-    ], function (err) {
+
+      return function (done) {
+        helpers.send(pair[0], pair[1], obj, done)
+      }
+    })
+
+    async.parallel(tasks, function (err) {
       if (err) throw err
 
-      const ab = alice.objects.conversation(alice.permalink, bob.permalink)
-      const ba = bob.objects.conversation(bob.permalink, alice.permalink)
+      const tasks = pairs.map(pair => {
+        return function getConversation (done) {
+          const friend1 = pair[0]
+          const friend2 = pair[1]
 
-      async.parallel([
-        function aliceToBob (done) {
-          collect(ab, done)
-        },
-        function bobToAlice (done) {
-          collect(ba, done)
+          friend1.conversation(friend2.permalink, function (err, msgs) {
+            if (err) return done(err)
+
+            t.equal(msgs.length, 2)
+            const objs = msgs.map(m => m.object.object)
+
+            t.ok(objs.some(o => {
+              return o.from === friend1.name && o.to === friend2.name
+            }))
+
+            t.ok(objs.some(o => {
+              return o.from === friend2.name && o.to === friend1.name
+            }))
+
+            done()
+          })
         }
-      ], function (err, results) {
-        results = results.map(arr => arr.map(wrapper => wrapper.object.object))
+      })
 
-        t.same(results[0], [toBob])
-        t.same(results[1], [toAlice])
+      async.parallel(tasks, err => {
+        if (err) throw err
+
         friends.forEach(friend => friend.destroy())
         t.end()
       })
@@ -250,7 +267,7 @@ test('conversation', function (t) {
   })
 })
 
-test('forget', function (t) {
+test.skip('forget', function (t) {
   contexts.nFriends(3, function (err, friends) {
     if (err) throw err
 

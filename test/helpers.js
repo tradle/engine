@@ -1,7 +1,7 @@
 'use strict'
 
 const crypto = require('crypto')
-const extend = require('xtend')
+const deepEqual = require('deep-equal')
 const leveldown = require('memdown')
 const changesFeed = require('changes-feed')
 const async = require('async')
@@ -82,11 +82,22 @@ exports.wallet = function (key, blockchain) {
   })
 }
 
-exports.connect = function connect (people) {
-  helpers.eachOther(people, function receiveOnSend (a, b) {
-    var aInfo = { link: a.identityInfo.link }
+exports.pairs = function pairs (arr) {
+  return arr.map(a => {
+    return arr.filter(b => b !== a).map(b => [a, b])
+  })
+  .reduce((all, next) => all.concat(next))
+}
+
+exports.connect = function connect (nodes) {
+  nodes.forEach(a => {
+    const myInfo = { link: a.identityInfo.link }
     a._send = function (msg, recipient, cb) {
-      b.receive(msg, aInfo, function (err) {
+      const b = utils.find(nodes, a => {
+        return a.permalink === recipient.permalink
+      })
+
+      b.receive(msg, myInfo, function (err) {
         if (err) throw err
 
         cb.apply(null, arguments)
@@ -95,20 +106,32 @@ exports.connect = function connect (people) {
   })
 }
 
+// exports.connect = function connect (people) {
+//   helpers.eachOther(people, function receiveOnSend (a, b) {
+//     var aInfo = { link: a.identityInfo.link }
+//     a._send = function (msg, recipient, cb) {
+//       b.receive(msg, aInfo, function (err) {
+//         if (err) throw err
+
+//         cb.apply(null, arguments)
+//       })
+//     }
+//   })
+// }
+
 exports.meet = function meet (people, cb) {
-  helpers.eachOther(people, (a, b, done) => a.addContact(b.identity, done), cb)
+  helpers.eachOther(people, function meet (a, b, done) {
+    a.addContact(b.identity, done)
+  }, cb)
 }
 
 exports.eachOther = function eachOther (args, fn, cb) {
-  async.parallel(args.map(a => {
-    return done => {
-      args.forEach(b => {
-        if (a !== b) {
-          fn(a, b, done)
-        }
-      })
-    }
-  }), cb || noop)
+  async.each(args, function (a, done) {
+    const rest = [].filter.call(args, b => b !== a)
+    async.each(rest, function (b, done) {
+      fn(a, b, done)
+    }, done)
+  }, cb || noop)
 }
 
 exports.userToOpts = function userToOpts (user, name) {
@@ -124,7 +147,7 @@ exports.createNode = function createNode (opts) {
   const priv = utils.chainKey(opts.keys).exportPrivate().priv
   const transactor = opts.transactor || helpers.transactor(priv, opts.blockchain)
   const blockchain = opts.blockchain || transactor.blockchain
-  opts = extend(opts, {
+  opts = utils.extend(opts, {
     dir: opts.dir || helpers.nextDir(),
     keeper: helpers.keeper(),
     networkName: networkName,
@@ -143,23 +166,40 @@ exports.send = function send (from, to, object, cb) {
   }
 
   object = object || { [TYPE]: 'blah', a: 1 }
+
   from.signNSend({
     object: object,
     author: from._senderOpts,
     recipient: to._recipientOpts
-  }, rethrow)
+  }, function (err, result) {
+    if (err) throw err
 
-  let togo = 2
-  let message
-  from.once('sent', done)
-  to.once('message', _message => {
-    message = _message
-    done()
+    from.on('sent', onsent)
+    to.on('message', onreceived)
+    let togo = 2
+
+    function onsent (msg) {
+      if (deepEqual(msg.object, result.object)) {
+        // console.log('sent', msg.object.object)
+        from.removeListener('sent', onsent)
+        done()
+      }
+    }
+
+    function onreceived (msg) {
+      if (deepEqual(msg.object, result.object)) {
+        // console.log('received', msg.object.object)
+        to.removeListener('message', onreceived)
+        done()
+      }
+    }
+
+    function done () {
+      if (--togo === 0) {
+        cb(null, result)
+      }
+    }
   })
-
-  function done () {
-    if (--togo === 0) cb(null, message)
-  }
 }
 
 

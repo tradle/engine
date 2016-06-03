@@ -6,9 +6,38 @@ const memdown = require('memdown')
 const levelup = require('levelup')
 const subdown = require('subleveldown')
 const Readable = require('readable-stream').Readable
+const collect = require('stream-collector')
+const mergestreams = require('../lib/mergestreams')
 const controls = require('../lib/controls')
 const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
+
+test('merge streams', function (t) {
+  t.plan(1)
+  const a = new Readable({ objectMode: true })
+  a._read = utils.noop
+  const b = new Readable({ objectMode: true })
+  b._read = utils.noop
+
+  function compare (n, m) {
+    return n - m
+  }
+
+  collect(mergestreams([a, b], compare), function (err, result) {
+    if (err) throw err
+
+    t.same(result, [0, 1, 2, 3, 4, 5])
+  })
+
+  a.push(4)
+  b.push(1)
+  a.push(2)
+  b.push(0)
+  a.push(5)
+  a.push(null)
+  b.push(3)
+  b.push(null)
+})
 
 test('pub key to address', function (t) {
   const pub = {
