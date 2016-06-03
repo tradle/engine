@@ -22,7 +22,7 @@ const helpers = require('./helpers')
 const users = require('./fixtures/users')
 
 test('try again', function (t) {
-  t.plan(8)
+  t.plan(13)
 
   const aliceKey = protocol.genECKey()
   const alicePubKey = utils.omit(aliceKey, 'priv')
@@ -57,6 +57,7 @@ test('try again', function (t) {
   ]
 
   const authorLink = 'bob'
+  const recipientLink = 'alice'
   const bob = helpers.dummyIdentity(authorLink)
 
   const changes = helpers.nextFeed()
@@ -78,6 +79,8 @@ test('try again', function (t) {
   const unsent = objs.filter(obj => obj[TYPE] === MESSAGE_TYPE)
   const sender = createSender({
     send: function (msg, recipient, cb) {
+      t.ok(sender.isRunning())
+
       // 2 + 3 times
       msg = protocol.unserializeMessage(msg)
       t.same(msg, unsent[0])
@@ -119,7 +122,7 @@ test('try again', function (t) {
     setTimeout(function () {
       // check that live stream is working
 
-      let obj = {
+      const obj = {
         [TYPE]: MESSAGE_TYPE,
         recipientPubKey: alicePubKey,
         object: {
@@ -129,7 +132,9 @@ test('try again', function (t) {
 
       unsent.push(obj)
       create(obj)
-    }, 100)
+      sender.pause()
+      setTimeout(() => sender.resume(), 500)
+    }, 200)
   }
 
   function create (object, cb) {
@@ -139,7 +144,7 @@ test('try again', function (t) {
     }, function (err) {
       if (err) throw err
 
-      const wrapper = { object, author: authorLink }
+      const wrapper = { object, author: authorLink, recipient: recipientLink }
       utils.addLinks(wrapper)
       keyToVal[wrapper.link] = object
       keeper.put(wrapper.link, object, err => {

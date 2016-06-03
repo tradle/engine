@@ -6,6 +6,7 @@ const memdown = require('memdown')
 const levelup = require('levelup')
 const subdown = require('subleveldown')
 const Readable = require('readable-stream').Readable
+const controls = require('../lib/controls')
 const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
 
@@ -125,9 +126,9 @@ test('queue', function (t) {
   const input = new Readable({ objectMode: true })
   input._read = function () {}
   input.pipe(q).on('data', function (data) {
-    t.equal(data.id, expectedNext++)
-    t.equal(data.tries, 0)
-    t.equal(data.timesExecuted, 1)
+    t.equal(data.input.id, expectedNext++)
+    t.equal(data.input.tries, 0)
+    t.equal(data.input.timesExecuted, 1)
   })
 
   for (var i = 0; i < timesQueued; i++) {
@@ -148,6 +149,36 @@ test('queue', function (t) {
   //     })()
   //   }
   // })
+})
+
+test('pause queue', function (t) {
+  let paused
+  const q = createRetryStream({
+    worker: function (data, cb) {
+      t.notOk(paused)
+
+      setTimeout(() => {
+        if (data.id === 'b') q.pause()
+        if (data.id === 'e') t.end()
+
+        cb()
+      }, 100)
+    },
+    primaryKey: 'id',
+    backoff: backoff.exponential({
+      initialDelay: 10,
+      maxDelay: 100
+    })
+  })
+
+  q.on('pause', () => paused = true)
+  q.on('resume', () => paused = false)
+  q.write({ id: 'a' })
+  q.write({ id: 'b' })
+  q.write({ id: 'c' })
+  q.write({ id: 'd' })
+  q.write({ id: 'e' })
+  setTimeout(() => q.resume(), 1000)
 })
 
 test('lockify', function (t) {
@@ -201,6 +232,50 @@ test('lockify', function (t) {
   obj.c('c', function () {
     t.equal(Object.keys(done).length, 0)
   })
+})
+
+test('controls', function (t) {
+  let started
+  let paused
+
+  const c = controls({
+    start: function () {
+      t.notOk(started)
+      started = true
+      return function () {
+        t.ok(started)
+        started = false
+      }
+    },
+    pause: function () {
+      t.notOk(paused)
+      paused = true
+      return function () {
+        t.ok(paused)
+        paused = false
+      }
+    }
+  })
+
+  t.notOk(c.isRunning())
+  t.throws(function () {
+    c.pause()
+  })
+
+  c.start()
+  t.ok(c.isRunning())
+  c.pause()
+  t.notOk(c.isRunning())
+  c.stop()
+  t.notOk(c.isRunning())
+  t.throws(function () {
+    c.resume()
+  })
+
+  c.start()
+  t.ok(c.isRunning())
+
+  t.end()
 })
 
 // test('queue', function (t) {

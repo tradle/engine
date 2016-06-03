@@ -136,6 +136,33 @@ exports.createNode = function createNode (opts) {
   return new Node(opts)
 }
 
+exports.send = function send (from, to, object, cb) {
+  if (typeof object === 'function') {
+    cb = object
+    object = null
+  }
+
+  object = object || { [TYPE]: 'blah', a: 1 }
+  from.signNSend({
+    object: object,
+    author: from._senderOpts,
+    recipient: to._recipientOpts
+  }, rethrow)
+
+  let togo = 2
+  let message
+  from.once('sent', done)
+  to.once('message', _message => {
+    message = _message
+    done()
+  })
+
+  function done () {
+    if (--togo === 0) cb(null, message)
+  }
+}
+
+
 exports.nextDir = function nextDir () {
   return `./testdir/${INSTANCE_COUNT++}.db`
 }
@@ -145,3 +172,7 @@ process.on('uncaughtException', function (err) {
 
   throw err
 })
+
+function rethrow (err) {
+  if (err) throw err
+}

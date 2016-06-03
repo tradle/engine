@@ -72,8 +72,8 @@ test('`createObject`', function (t) {
 
   alice.createObject({ object: utils.clone(object) }, err => {
     t.ok(err)
-    // t.equal(err.type, 'saving')
-    t.equal(err.type, 'exists')
+    t.equal(err.type, 'saving')
+    // t.equal(err.type, 'exists')
   })
 })
 
@@ -220,10 +220,10 @@ test('conversation', function (t) {
     const toAlice = { [TYPE]: 'hey', message: 'alice' }
     async.parallel([
       function aliceToBob (done) {
-        send(alice, bob, toBob, done)
+        helpers.send(alice, bob, toBob, done)
       },
       function bobToAlice (done) {
-        send(bob, alice, toAlice, done)
+        helpers.send(bob, alice, toAlice, done)
       }
     ], function (err) {
       if (err) throw err
@@ -250,22 +250,61 @@ test('conversation', function (t) {
   })
 })
 
+test('forget', function (t) {
+  contexts.nFriends(3, function (err, friends) {
+    if (err) throw err
+
+    const alice = friends[0]
+    const bob = friends[1]
+    const carol = friends[2]
+
+    helpers.connect([alice, bob, carol])
+
+    const sendTasks = friends.map(friend1 => {
+      return friends.map(friend2 => {
+        if (friend1 !== friend2) {
+          const obj = { [TYPE]: 'hey', message: friend2.name }
+          return function (cb) {
+            helpers.send(friend1, friend2, obj, cb)
+          }
+        }
+      })
+    })
+    .reduce(function (arr, next) {
+      return arr.concat(next)
+    }, [])
+
+    async.parallel(tasks, function (err) {
+      if (err) throw err
+
+      collect(alice.objects.conversation(alice.permalink, bob.permalink), function (err, c) {
+        if (err) throw err
+
+        t.equal(c.length, 2)
+        alice.forget(bob.permalink, function (err) {
+          if (err) throw err
+
+          async.parallel([
+            function aliceAndBob (done) {
+              collect(alice.objects.conversation(alice.permalink, bob.permalink), done)
+            },
+            function aliceAndCarol (done) {
+              collect(alice.objects.conversation(alice.permalink, carol.permalink), done)
+            }
+          ], function (err, conversations) {
+            if (err) throw err
+
+            t.equal(conversations[0].length, 0)
+            t.equal(conversations[1].length, 2)
+            friends.forEach(friend => friend.destroy())
+            t.end()
+          })
+        })
+      })
+    })
+  })
+})
+
 function rethrow (err) {
   if (err) throw err
-}
-
-function send (from, to, object, cb) {
-  if (typeof object === 'function') {
-    cb = object
-    object = null
-  }
-
-  object = object || { [TYPE]: 'blah', a: 1 }
-  from.signNSend({
-    object: object,
-    author: from._senderOpts,
-    recipient: to._recipientOpts
-  }, rethrow)
-
-  to.on('message', message => cb(null, message))
 }
