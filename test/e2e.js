@@ -85,7 +85,6 @@ test('`createObject`', function (t) {
 // })
 
 test('basic send/receive', function (t) {
-  let blockchain
   contexts.twoFriends(function (err, friends) {
     if (err) throw err
 
@@ -133,6 +132,21 @@ test('basic send/receive', function (t) {
 
       alice.destroy()
       bob.destroy()
+      t.end()
+    })
+  })
+})
+
+test('don\'t receive duplicates', function (t) {
+  t.timeoutAfter(1000)
+
+  contexts.twoFriendsMessageSentReceived(function (err, result) {
+    if (err) throw err
+
+    const msg = result.message.object
+    result.receiver.receive(protocol.serializeMessage(msg), result.sender._recipientOpts, function (err) {
+      t.ok(err)
+      result.friends.forEach(friend => friend.destroy())
       t.end()
     })
   })
