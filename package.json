@@ -1,10 +1,12 @@
 {
-  "name": "tim-core",
+  "name": "@tradle/engine",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node test"
+    "test": "node test",
+    "installhooks": "cp hooks/* .git/hooks/",
+    "postinstall": "npm run installhooks"
   },
   "author": "Mark Vayngrib <mark@tradle.io> (http://github.com/mvayngrib)",
   "license": "MIT",
@@ -12,7 +14,7 @@
     "@tradle/bitcoinjs-lib": "^1.6.0",
     "@tradle/constants": "^2.0.3",
     "@tradle/offline-keeper": "^3.1.1",
-    "@tradle/protocol": "file:../tradle-protocol",
+    "@tradle/protocol": "tradle/protocol",
     "async": "^2.0.0-rc.4",
     "backoff": "^2.5.0",
     "bs58check": "^1.0.8",
