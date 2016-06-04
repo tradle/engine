@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node test",
+    "test": "tap test/*.test.js",
+    "coverage": "tap test/*.test.js -- --cov --coverage-report=lcov",
     "installhooks": "cp hooks/* .git/hooks/",
     "postinstall": "npm run installhooks"
   },
@@ -56,7 +57,7 @@
     "sendy-otr": "^2.0.0",
     "sendy-ws": "^1.2.4",
     "sendy-ws-relay": "^1.1.3",
-    "tape": "^4.5.1",
+    "tap": "^5.7.2",
     "why-is-node-running": "^1.2.2"
   }
 }

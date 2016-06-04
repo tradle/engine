@@ -1,5 +1,6 @@
 'use strict'
 
+const async = require('async')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE
 const users = require('./fixtures/users')
@@ -76,6 +77,11 @@ exports.twoFriendsMessageSentReceived = function (obj, cb) {
 
     let togo = 2
     const result = { sender, receiver, friends }
+    result.destroy = function (cb) {
+      async.each(friends, function iterator (friend, done) {
+        friend.destroy(done)
+      }, cb)
+    }
 
     sender.on('sent', wrapper => {
       result.sent = wrapper

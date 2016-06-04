@@ -93,7 +93,7 @@ test('update identity', function (t) {
   const originalHash = 'abc'
   const updateHash = 'abc1'
 
-  const ted = extend(users[0].pub)
+  const ted = extend(users[0].identity)
   const newTed = extend(ted)
   newTed[PREVLINK] = newTed[PERMALINK] = originalHash
   newTed.name = 'ted!'

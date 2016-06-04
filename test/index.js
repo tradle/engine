@@ -1,7 +1,0 @@
-require('./unit')
-// require('./sealer')
-require('./sealwatch')
-// // require('./sender')
-require('./objectdb')
-require('./addressBook')
-require('./e2e')

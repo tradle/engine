@@ -8,7 +8,7 @@ const typeforce = require('typeforce')
 const protocol = require('@tradle/protocol')
 const kiki = require('@tradle/kiki')
 const identityLib = require('@tradle/identity')
-const constants = require('./constants')
+const constants = require('../lib/constants')
 const utils = require('../lib/utils')
 const TYPE = constants.TYPE
 // const NONCE = constants.NONCE
@@ -29,46 +29,13 @@ function genUsers (opts) {
 
   const file = path.resolve(opts.file)
   const number = opts.number
-  const tmp = []
-  for (let i = 0; i < number; i++) {
-    tmp.push(null)
-  }
+  const tmp = new Array(number).fill(0)
 
-  async.parallel(tmp.map(() => genOne), function (err, results) {
+  async.map(tmp, function iterator (blah, done) {
+    utils.newIdentity({ networkName: 'testnet' }, done)
+  }, function (err, results) {
     if (err) throw err
 
     fs.writeFile(file, JSON.stringify(results, null, 2))
-  })
-}
-
-function genOne (cb) {
-  const keys = identityLib.defaultKeySet({
-    networkName: 'testnet'
-  })
-
-  const pub = {
-    [TYPE]: constants.TYPES.IDENTITY,
-    pubkeys: keys.map(k => k.exportPublic()).map(k => {
-      k.pub = k.value
-      return k
-    })
-  }
-
-  const sigKey = utils.sigKey(keys)
-  const sigPubKey = utils.sigPubKey(pub)
-  protocol.sign({
-    sender: {
-      sigPubKey: sigPubKey,
-      sign: sigKey.sign.bind(sigKey)
-    },
-    object: pub
-  }, err => {
-    if (err) return cb(err)
-
-    cb(null, {
-      pub: pub,
-      priv: keys.map(k => k.exportPrivate()),
-      rootHash: protocol.link(pub)
-    })
   })
 }

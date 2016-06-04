@@ -11,8 +11,8 @@ const Wallet = require('@tradle/simple-wallet')
 const testHelpers = require('@tradle/test-helpers')
 const kiki = require('@tradle/kiki')
 const protocol = require('@tradle/protocol')
+const defaults = require('../lib/defaults')
 const utils = require('../lib/utils')
-const users = require('./fixtures/users')
 const helpers = require('./helpers')
 const contexts = require('./contexts')
 const Node = require('../lib/node')
@@ -278,6 +278,59 @@ test('conversation', function (t) {
         t.end()
       })
     })
+  })
+})
+
+test('delete watch after X confirmed', function (t) {
+  t.timeoutAfter(2000)
+  const confirmedAfter = defaults.confirmedAfter
+  defaults.confirmedAfter = 3
+
+  contexts.twoFriendsMessageSentReceivedSealed({ sealer: 'receiver' }, function (err, result) {
+    if (err) throw err
+
+    const sender = result.sender
+    const receiver = result.receiver
+    const blockchain = sender.blockchain
+
+    async.parallel(result.friends.map(node => {
+      return done => checkWatch(node, 1, done)
+    }), function (err) {
+      if (err) throw err
+
+      makeBlocks()
+      async.parallel(result.friends.map(node => {
+        return done => node.sync(done)
+      }), function (err) {
+        if (err) throw err
+
+        async.parallel(result.friends.map(node => {
+          return done => checkWatch(node, 0, done)
+        }), function (err) {
+          if (err) throw err
+
+          defaults.confirmedAfter = confirmedAfter
+          result.destroy()
+          t.end()
+        })
+      })
+    })
+
+    function makeBlocks () {
+      // advance blockchain till we have enough confirmations
+      for (var i = 0; i < defaults.confirmedAfter; i++) {
+        blockchain._advanceToNextBlock()
+      }
+    }
+
+    function checkWatch (node, expected, cb) {
+      node.watches.list(function (err, watches) {
+        if (err) throw err
+
+        t.equal(watches.length, expected)
+        if (cb) cb()
+      })
+    }
   })
 })
 
