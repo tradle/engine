@@ -41,13 +41,13 @@ exports.twoFriends = function twoFriends (cb) {
   exports.nFriends(2, cb)
 }
 
-exports.twoFriendsMessageSentReceived = function (obj, cb) {
-  if (typeof obj === 'function') {
-    cb = obj
-    obj = null
+exports.twoFriendsSentReceived = function (object, cb) {
+  if (typeof object === 'function') {
+    cb = object
+    object = null
   }
 
-  obj = obj || {
+  object = object || {
     [TYPE]: 'thang',
     a: 1,
     b: 2
@@ -71,12 +71,12 @@ exports.twoFriendsMessageSentReceived = function (obj, cb) {
     }
 
     sender.signNSend({
-      object: obj,
+      object: object,
       recipient: receiver._recipientOpts,
     }, rethrow)
 
     let togo = 2
-    const result = { sender, receiver, friends }
+    const result = { sender, receiver, friends, object }
     result.destroy = function (cb) {
       async.each(friends, function iterator (friend, done) {
         friend.destroy(done)
@@ -99,8 +99,8 @@ exports.twoFriendsMessageSentReceived = function (obj, cb) {
   })
 }
 
-exports.twoFriendsMessageSentReceivedSealed = function (opts, cb) {
-  contexts.twoFriendsMessageSentReceived(opts.object, function (err, result) {
+exports.twoFriendsSentReceivedSealed = function (opts, cb) {
+  contexts.twoFriendsSentReceived(opts.object, function (err, result) {
     if (err) throw err
 
     const friends = result.friends

@@ -140,13 +140,13 @@ test('basic send/receive', function (t) {
 test('don\'t receive duplicates', function (t) {
   t.timeoutAfter(1000)
 
-  contexts.twoFriendsMessageSentReceived(function (err, result) {
+  contexts.twoFriendsSentReceived(function (err, context) {
     if (err) throw err
 
-    const msg = result.message.object
-    result.receiver.receive(protocol.serializeMessage(msg), result.sender._recipientOpts, function (err) {
+    const msg = context.message.object
+    context.receiver.receive(protocol.serializeMessage(msg), context.sender._recipientOpts, function (err) {
       t.ok(err)
-      result.destroy()
+      context.destroy()
       t.end()
     })
   })
@@ -154,37 +154,46 @@ test('don\'t receive duplicates', function (t) {
 
 test('sender seals', function (t) {
   t.timeoutAfter(1000)
-  contexts.twoFriendsMessageSentReceivedSealed({ sealer: 'sender' }, function (err, result) {
+  contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
     if (err) throw err
 
-    const dude = result.sender
-    for (var i = 0; i < dude.confirmedAfter; i++) {
-      dude.blockchain._advanceToNextBlock()
-    }
-
-    result.friends.forEach(node => node.on('readseal', t.fail))
-    async.each(result.friends, function iterator (node, done) {
-      node.sync(function () {
-        setTimeout(done, 200)
-      })
-    }, function (err) {
-      if (err) throw err
-
-      result.destroy()
-      t.pass('wrote & read seal')
-      t.end()
-    })
+    context.destroy()
+    t.pass('wrote & read seal')
+    t.end()
   })
 })
 
 test('receiver seals', function (t) {
   t.timeoutAfter(1000)
-  contexts.twoFriendsMessageSentReceivedSealed({ sealer: 'receiver' }, function (err, result) {
+  contexts.twoFriendsSentReceivedSealed({ sealer: 'receiver' }, function (err, context) {
     if (err) throw err
 
-    result.destroy()
+    context.destroy()
     t.pass('wrote & read seal')
     t.end()
+  })
+})
+
+test('`readseal` emitted once', function (t) {
+  t.timeoutAfter(1000)
+  contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
+    const dude = context.sender
+    for (var i = 0; i < dude.confirmedAfter; i++) {
+      dude.blockchain._advanceToNextBlock()
+    }
+
+    context.friends.forEach(node => node.on('readseal', t.fail))
+    async.each(context.friends, function iterator (node, done) {
+      node.sync(function () {
+        t.pass()
+        setTimeout(done, 200)
+      })
+    }, function (err) {
+      if (err) throw err
+
+      context.destroy()
+      t.end()
+    })
   })
 })
 
@@ -195,15 +204,15 @@ test('detect next version', function (t) {
     a: 1
   }
 
-  contexts.twoFriendsMessageSentReceivedSealed({ object: v1, sealer: 'sender' }, function (err, result) {
+  contexts.twoFriendsSentReceivedSealed({ object: v1, sealer: 'sender' }, function (err, context) {
     if (err) throw err
 
     const v1link = protocol.link(v1, 'hex')
     const v2 = protocol.nextVersion(v1, v1link)
     v2.a = 2
 
-    const newSealer = result.sender
-    const newAuditor = result.receiver
+    const newSealer = context.sender
+    const newAuditor = context.receiver
     newSealer.createObject({ object: v2 }, err => {
       if (err) throw err
 
@@ -233,7 +242,7 @@ test('detect next version', function (t) {
 
         clearInterval(sealerInterval)
         clearInterval(auditorInterval)
-        result.destroy()
+        context.destroy()
         t.end()
       }
     })
@@ -300,31 +309,31 @@ test('delete watch after X confirmed', function (t) {
   const confirmedAfter = defaults.confirmedAfter
   defaults.confirmedAfter = 3
 
-  contexts.twoFriendsMessageSentReceivedSealed({ sealer: 'receiver' }, function (err, result) {
+  contexts.twoFriendsSentReceivedSealed({ sealer: 'receiver' }, function (err, context) {
     if (err) throw err
 
-    const sender = result.sender
-    const receiver = result.receiver
+    const sender = context.sender
+    const receiver = context.receiver
     const blockchain = sender.blockchain
 
-    async.parallel(result.friends.map(node => {
+    async.parallel(context.friends.map(node => {
       return done => checkWatch(node, 1, done)
     }), function (err) {
       if (err) throw err
 
       makeBlocks()
-      async.parallel(result.friends.map(node => {
+      async.parallel(context.friends.map(node => {
         return done => node.sync(done)
       }), function (err) {
         if (err) throw err
 
-        async.parallel(result.friends.map(node => {
+        async.parallel(context.friends.map(node => {
           return done => checkWatch(node, 0, done)
         }), function (err) {
           if (err) throw err
 
           defaults.confirmedAfter = confirmedAfter
-          result.destroy()
+          context.destroy()
           t.end()
         })
       })
