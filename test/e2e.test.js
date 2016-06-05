@@ -146,7 +146,7 @@ test('don\'t receive duplicates', function (t) {
     const msg = result.message.object
     result.receiver.receive(protocol.serializeMessage(msg), result.sender._recipientOpts, function (err) {
       t.ok(err)
-      result.friends.forEach(friend => friend.destroy())
+      result.destroy()
       t.end()
     })
   })
@@ -157,9 +157,23 @@ test('sender seals', function (t) {
   contexts.twoFriendsMessageSentReceivedSealed({ sealer: 'sender' }, function (err, result) {
     if (err) throw err
 
-    result.friends.forEach(friend => friend.destroy())
-    t.pass('wrote & read seal')
-    t.end()
+    const dude = result.sender
+    for (var i = 0; i < dude.confirmedAfter; i++) {
+      dude.blockchain._advanceToNextBlock()
+    }
+
+    result.friends.forEach(node => node.on('readseal', t.fail))
+    async.each(result.friends, function iterator (node, done) {
+      node.sync(function () {
+        setTimeout(done, 200)
+      })
+    }, function (err) {
+      if (err) throw err
+
+      result.destroy()
+      t.pass('wrote & read seal')
+      t.end()
+    })
   })
 })
 
@@ -168,7 +182,7 @@ test('receiver seals', function (t) {
   contexts.twoFriendsMessageSentReceivedSealed({ sealer: 'receiver' }, function (err, result) {
     if (err) throw err
 
-    result.friends.forEach(friend => friend.destroy())
+    result.destroy()
     t.pass('wrote & read seal')
     t.end()
   })
@@ -219,7 +233,7 @@ test('detect next version', function (t) {
 
         clearInterval(sealerInterval)
         clearInterval(auditorInterval)
-        result.friends.forEach(friend => friend.destroy())
+        result.destroy()
         t.end()
       }
     })

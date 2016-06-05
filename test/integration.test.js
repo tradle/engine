@@ -8,6 +8,7 @@ const WebSocketRelay = require('sendy-ws-relay')
 const WebSocketClient = SendyWS.Client
 const createSwitchboard = SendyWS.Switchboard
 const OTRClient = require('sendy-otr')
+// const createKeeper = require('@tradle/keeper')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE
 const utils = require('../lib/utils')

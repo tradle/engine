@@ -76,7 +76,8 @@ test('watch', function (t) {
     db: helpers.nextDB(),
     watches: watchDB,
     objects: {}, // don't actually need it yet
-    syncInterval: 200
+    syncInterval: 200,
+    confirmedAfter: 10
   })
 
   sealwatch.on('error', rethrow)
