@@ -7,7 +7,6 @@ const levelup = require('levelup')
 const subdown = require('subleveldown')
 const Readable = require('readable-stream').Readable
 const collect = require('stream-collector')
-const mergestreams = require('../lib/mergestreams')
 const controls = require('../lib/controls')
 const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
@@ -23,7 +22,7 @@ test('merge streams', function (t) {
     return n - m
   }
 
-  collect(mergestreams([a, b], compare), function (err, result) {
+  collect(utils.mergeStreams([a, b], compare), function (err, result) {
     if (err) throw err
 
     t.same(result, [0, 1, 2, 3, 4, 5])
