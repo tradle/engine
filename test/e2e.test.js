@@ -157,6 +157,15 @@ test('sender seals', function (t) {
   contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
     if (err) throw err
 
+    const links = [
+      context.sent.link,
+      context.message.link,
+      context.readseal.link,
+      context.wroteseal.link
+    ]
+
+    t.ok(links.every(link => link === links[0]))
+
     context.destroy()
     t.pass('wrote & read seal')
     t.end()
@@ -167,6 +176,15 @@ test('receiver seals', function (t) {
   t.timeoutAfter(1000)
   contexts.twoFriendsSentReceivedSealed({ sealer: 'receiver' }, function (err, context) {
     if (err) throw err
+
+    const links = [
+      context.sent.link,
+      context.message.link,
+      context.readseal.link,
+      context.wroteseal.link
+    ]
+
+    t.ok(links.every(link => link === links[0]))
 
     context.destroy()
     t.pass('wrote & read seal')
