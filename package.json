@@ -24,6 +24,7 @@
     "debug": "^2.2.0",
     "deep-equal": "^1.0.1",
     "error": "^7.0.2",
+    "feed-indexer": "tradle/feed-indexer",
     "hydration": "mvayngrib/hydration",
     "json-stable-stringify": "^1.0.1",
     "level-change-processor": "mvayngrib/level-change-processor",
