@@ -72,11 +72,11 @@ test('try again', function (t) {
   })
 
   const keyToVal = {}
+  let unsent = []
   async.each(objs, create, start)
 
   // const unsent = batch.map(row => row.value).filter(val => val[TYPE] === MESSAGE_TYPE)
   let failuresToGo = 3
-  const unsent = objs.filter(obj => obj[TYPE] === MESSAGE_TYPE)
   const sender = createSender({
     send: function (msg, recipient, cb) {
       t.ok(sender.isRunning())
@@ -130,7 +130,6 @@ test('try again', function (t) {
         }
       }
 
-      unsent.push(obj)
       create(obj)
       sender.pause()
       setTimeout(() => sender.resume(), 500)
@@ -141,13 +140,15 @@ test('try again', function (t) {
     protocol.sign({
       object: object,
       author: bobAuthorObj
-    }, function (err) {
+    }, function (err, result) {
       if (err) throw err
 
-      const wrapper = { object, author: authorLink, recipient: recipientLink }
+      const signed = result.object
+      if (object[TYPE] === MESSAGE_TYPE) unsent.push(signed)
+      const wrapper = { object: signed, author: authorLink, recipient: recipientLink }
       utils.addLinks(wrapper)
-      keyToVal[wrapper.link] = object
-      keeper.put(wrapper.link, object, err => {
+      keyToVal[wrapper.link] = signed
+      keeper.put(wrapper.link, signed, err => {
         if (err) throw err
 
         actions.createObject(wrapper, cb)

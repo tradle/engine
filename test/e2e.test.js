@@ -9,7 +9,7 @@ const async = require('async')
 const collect = require('stream-collector')
 const Wallet = require('@tradle/simple-wallet')
 const testHelpers = require('@tradle/test-helpers')
-const kiki = require('@tradle/kiki')
+// const kiki = require('@tradle/kiki')
 const protocol = require('@tradle/protocol')
 const defaults = require('../lib/defaults')
 const utils = require('../lib/utils')
@@ -56,18 +56,20 @@ test('self in address book', function (t) {
 })
 
 test('`createObject`', function (t) {
-  t.plan(5)
   t.timeoutAfter(1000)
 
   const alice = contexts.nUsers(1)[0]
   const object = { [TYPE]: 'blah', a: 1 }
   alice.actions.on('newobj', () => t.pass())
-  alice.createObject({ object: utils.clone(object) }, err => {
+  alice.createObject({ object: utils.clone(object) }, function (err, result) {
     if (err) throw err
 
-    alice.createObject({ object: utils.clone(object) }, err => {
-      t.ok(err)
-      t.equal(err.type, 'exists')
+    async.parallel([
+      done => alice.objects.get(result.link, done),
+      done => alice.keeper.get(result.link, done)
+    ], err => {
+      if (err) throw err
+
       alice.destroy()
       t.end()
     })
@@ -118,17 +120,22 @@ test('basic send/receive', function (t) {
       b: 2
     }
 
+    let sent
     alice.signNSend({
       object: obj,
       recipient: bob._recipientOpts,
-    }, rethrow)
+    }, function (err, result) {
+      if (err) throw err
+
+      sent = result.object.object
+    })
 
     alice.on('sent', wrapper => {
-      t.same(wrapper.object.object, obj)
+      t.same(wrapper.object.object, sent)
     })
 
     bob.on('message', wrapper => {
-      t.same(wrapper.object.object, obj)
+      t.same(wrapper.object.object, sent)
 
       alice.destroy()
       bob.destroy()
@@ -137,7 +144,7 @@ test('basic send/receive', function (t) {
   })
 })
 
-test('don\'t receive duplicates', function (t) {
+test('don\'t receive duplicate messages', function (t) {
   t.timeoutAfter(1000)
 
   contexts.twoFriendsSentReceived(function (err, context) {
@@ -151,6 +158,28 @@ test('don\'t receive duplicates', function (t) {
     })
   })
 })
+
+// test.only('do receive messages carrying already known objects', function (t) {
+//   t.timeoutAfter(1000)
+
+//   const unsigned = {
+//     [TYPE]: 'blah',
+//     a: 1,
+//     b: 2
+//   }
+
+//   contexts.twoFriendsSentReceived(unsigned, function (err, context) {
+//     if (err) throw err
+
+//     context.received.receive(, context.sender._recipientOpts, rethrow)
+
+//     context.receiver.on('message', function (msg) {
+//       t.same(msg.object.object, context.object.object)
+//       context.destroy()
+//       t.end()
+//     })
+//   })
+// })
 
 test('sender seals', function (t) {
   t.timeoutAfter(1000)
@@ -217,7 +246,7 @@ test('`readseal` emitted once', function (t) {
 
 test('detect next version', function (t) {
   // t.timeoutAfter(1000)
-  const v1 = {
+  let v1 = {
     [TYPE]: 'blah',
     a: 1
   }
@@ -225,15 +254,17 @@ test('detect next version', function (t) {
   contexts.twoFriendsSentReceivedSealed({ object: v1, sealer: 'sender' }, function (err, context) {
     if (err) throw err
 
-    const v1link = protocol.link(v1, 'hex')
-    const v2 = protocol.nextVersion(v1, v1link)
+    v1 = context.object.object // signed
+    const v1link = protocol.linkString(v1)
+    let v2 = protocol.nextVersion(v1, v1link)
     v2.a = 2
 
     const newSealer = context.sender
     const newAuditor = context.receiver
-    newSealer.createObject({ object: v2 }, err => {
+    newSealer.createObject({ object: v2 }, function (err, result) {
       if (err) throw err
 
+      v2 = result.object // signed
       // utils.logify(utils, 'pubKeyToAddress', true)
       let seal
       newSealer.seal({ object: v2 }, rethrow)

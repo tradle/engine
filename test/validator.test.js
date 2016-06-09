@@ -6,6 +6,7 @@ const levelErrors = require('level-errors')
 const validator = require('../lib/validator')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
+const TYPE = constants.TYPE
 const SIG = constants.SIG
 const contexts = require('./contexts')
 
@@ -18,7 +19,10 @@ test('validator', function (t) {
     const validate = validator(sender).validate
     const object = context.object
     const wrapper = context.sent
-    validate(wrapper, function (err) {
+    validate({
+      object: object,
+      author: context.sender._recipientOpts
+    }, function (err) {
       t.equal(err.type, 'exists')
 
       let bad = utils.clone(wrapper)
@@ -31,12 +35,14 @@ test('validator', function (t) {
         bad = utils.clone(wrapper)
         // change link to avoid ObjectExists error
         bad.link = 'heyho'
-        wrapper.object[SIG] = 'blah'
-
-        validate(bad, function (err) {
-          t.equal(err.type, 'invalidsignature')
-          context.destroy()
-          t.end()
+        const somethingElse = { [TYPE]: 'something', what: 'else' }
+        sender.sign({ object: somethingElse }, function (err, result) {
+          bad.object[SIG] = result[SIG]
+          validate(bad, function (err) {
+            t.equal(err.type, 'invalidsignature')
+            context.destroy()
+            t.end()
+          })
         })
       })
     })

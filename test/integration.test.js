@@ -8,6 +8,8 @@ const WebSocketRelay = require('sendy-ws-relay')
 const WebSocketClient = SendyWS.Client
 const createSwitchboard = SendyWS.Switchboard
 const OTRClient = require('sendy-otr')
+// const nkey = require('nkey')
+// const nkeyEC = require('nkey-ec')
 // const createKeeper = require('@tradle/keeper')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE
@@ -38,13 +40,13 @@ test('sendy', function (t) {
 
       const otrKey = getOTRKey(node)
       const transport = createSwitchboard({
-        identifier: otrKey.fingerprint(),
+        identifier: otrKey.fingerprint,
         unreliable: wsClient,
         clientForRecipient: function (recipient) {
           const sendy = new Sendy(SENDY_OPTS)
           if (i) messUpConnection(sendy._client)
           return new OTRClient({
-            key: otrKey.priv(),
+            key: otrKey.priv,
             client: sendy,
             theirFingerprint: recipient
           })
@@ -75,9 +77,14 @@ test('sendy', function (t) {
       cleanup()
     })
 
-    const object = { [TYPE]: 'ho', hey: 'hey' }
-    alice.signNSend({ object, recipient: bob._recipientOpts }, function (err) {
+    let object
+    alice.signNSend({
+      object: { [TYPE]: 'ho', hey: 'hey' },
+      recipient: bob._recipientOpts
+    }, function (err, result) {
       if (err) throw err
+
+      object = result.object.object // signed
     })
 
     function cleanup () {
@@ -90,7 +97,7 @@ test('sendy', function (t) {
 })
 
 function getOTRKey (node) {
-  return utils.find(node.keys, key => key.type() === 'dsa')
+  return utils.find(node.keys, key => key.type === 'dsa')
 }
 
 function getOTRFingerprint (identity) {

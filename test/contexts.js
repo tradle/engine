@@ -70,13 +70,17 @@ exports.twoFriendsSentReceived = function (object, cb) {
       })
     }
 
+    const result = { sender, receiver, friends }
     sender.signNSend({
       object: object,
       recipient: receiver._recipientOpts,
-    }, rethrow)
+    }, function (err, wrapper) {
+      if (err) throw err
+
+      result.object = wrapper.object
+    })
 
     let togo = 2
-    const result = { sender, receiver, friends, object }
     result.destroy = function (cb) {
       async.each(friends, function iterator (friend, done) {
         friend.destroy(done)
@@ -94,7 +98,9 @@ exports.twoFriendsSentReceived = function (object, cb) {
     })
 
     function done () {
-      if (--togo === 0) cb(null, result)
+      if (--togo === 0) {
+        cb(null, result)
+      }
     }
   })
 }

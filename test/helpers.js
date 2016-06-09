@@ -7,7 +7,8 @@ const changesFeed = require('changes-feed')
 const async = require('async')
 const fakeWallet = require('@tradle/test-helpers').fakeWallet
 const Wallet = require('@tradle/simple-wallet')
-const kiki = require('@tradle/kiki')
+// const kiki = require('@tradle/kiki')
+// const nkey = require('nkey-ec')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
 const Node = require('../lib/node')
@@ -137,14 +138,14 @@ exports.eachOther = function eachOther (args, fn, cb) {
 exports.userToOpts = function userToOpts (user, name) {
   return {
     identity: user.identity,
-    keys: user.keys.map(key => kiki.toKey(key)),
+    keys: user.keys.map(utils.importKey),
     name: name
   }
 }
 
 exports.createNode = function createNode (opts) {
   const networkName = opts.networkName || DEFAULT_NETWORK_NAME
-  const priv = utils.chainKey(opts.keys).exportPrivate().priv
+  const priv = utils.chainKey(opts.keys).toJSON(true).priv
   const transactor = opts.transactor || helpers.transactor(priv, opts.blockchain)
   const blockchain = opts.blockchain || transactor.blockchain
   opts = utils.extend(opts, {
