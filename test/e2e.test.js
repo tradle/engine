@@ -144,6 +144,38 @@ test('basic send/receive', function (t) {
   })
 })
 
+test('get unsent to recipient', function (t) {
+  t.timeoutAfter(1000)
+
+  contexts.nFriends(3, function (err, friends) {
+    if (err) throw err
+
+    const alice = friends[0]
+    const bob = friends[1]
+    const carol = friends[2]
+    helpers.connect(friends)
+
+    const obj = { [TYPE]: 'hey', message: 'ho' }
+    alice.signNSend({ object: obj , recipient: bob._recipientOpts }, err => {
+      if (err) throw err
+
+      async.parallel([
+        done => collect(alice.objects.unsentTo(bob.permalink), done),
+        done => collect(alice.objects.unsentTo(carol.permalink), done),
+        done => collect(bob.objects.unsentTo(alice.permalink), done)
+      ], function (err, results) {
+        if (err) throw err
+
+        t.equal(results[0].length, 1)
+        t.equal(results[1].length, 0)
+        t.equal(results[2].length, 0)
+        friends.forEach(friend => friend.destroy())
+        t.end()
+      })
+    })
+  })
+})
+
 test('don\'t receive duplicate messages', function (t) {
   t.timeoutAfter(1000)
 
