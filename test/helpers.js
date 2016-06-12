@@ -138,7 +138,7 @@ exports.eachOther = function eachOther (args, fn, cb) {
 exports.userToOpts = function userToOpts (user, name) {
   return {
     identity: user.identity,
-    keys: user.keys.map(utils.importKey),
+    keys: user.keys.map(k => utils.importKey(k)),
     name: name
   }
 }
