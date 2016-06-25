@@ -171,7 +171,7 @@ exports.send = function send (from, to, object, cb) {
   from.signNSend({
     object: object,
     author: from._senderOpts,
-    recipient: to._recipientOpts
+    to: to._recipientOpts
   }, function (err, result) {
     if (err) throw err
 

@@ -80,7 +80,7 @@ test('sendy', function (t) {
     let object
     alice.signNSend({
       object: { [TYPE]: 'ho', hey: 'hey' },
-      recipient: bob._recipientOpts
+      to: bob._recipientOpts
     }, function (err, result) {
       if (err) throw err
 
