@@ -6,7 +6,7 @@
   "scripts": {
     "test": "tap test/*.test.js",
     "coverage": "npm test -- --cov --coverage-report=lcov",
-    "installhooks": "cp hooks/* .git/hooks/",
+    "installhooks": "./installhooks.sh",
     "postinstall": "npm run installhooks"
   },
   "author": "Mark Vayngrib <mark@tradle.io> (http://github.com/mvayngrib)",
