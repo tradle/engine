@@ -16,6 +16,8 @@ const utils = require('../lib/utils')
 const helpers = require('./helpers')
 const contexts = require('./contexts')
 const Node = require('../lib/node')
+const createSealer = require('../lib/sealer')
+const createSender = require('../lib/sender')
 const constants = require('../lib/constants')
 const PREVLINK = constants.PREVLINK
 const TYPE = constants.TYPE
@@ -30,7 +32,10 @@ const LONG_BACKOFF_OPTS = {
   maxDelay: 60 * 1000 * 1000 * 1000
 }
 
-retrystream.DEFAULT_BACKOFF_OPTS = SHORT_BACKOFF_OPTS
+retrystream.DEFAULT_BACKOFF_OPTS =
+createSender.DEFAULT_BACKOFF_OPTS =
+createSealer.DEFAULT_BACKOFF_OPTS = SHORT_BACKOFF_OPTS
+
 const names = helpers.names
 const noop = () => {}
 let INSTANCE_COUNT = 0
@@ -452,9 +457,7 @@ test('forget', function (t) {
       return friends.map(friend2 => {
         if (friend1 !== friend2) {
           const obj = { [TYPE]: 'hey', message: friend2.name }
-          return function (cb) {
-            helpers.send(friend1, friend2, obj, cb)
-          }
+          return cb => helpers.send(friend1, friend2, obj, cb)
         }
       })
     })
