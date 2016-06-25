@@ -438,7 +438,7 @@ test('delete watch after X confirmed', function (t) {
   })
 })
 
-test.skip('forget', function (t) {
+test('forget', function (t) {
   contexts.nFriends(3, function (err, friends) {
     if (err) throw err
 
@@ -448,7 +448,7 @@ test.skip('forget', function (t) {
 
     helpers.connect([alice, bob, carol])
 
-    const sendTasks = friends.map(friend1 => {
+    const tasks = friends.map(friend1 => {
       return friends.map(friend2 => {
         if (friend1 !== friend2) {
           const obj = { [TYPE]: 'hey', message: friend2.name }
@@ -459,8 +459,9 @@ test.skip('forget', function (t) {
       })
     })
     .reduce(function (arr, next) {
-      return arr.concat(next)
+      return next ? arr.concat(next) : arr
     }, [])
+    .filter(task => task) // filter out nulls
 
     async.parallel(tasks, function (err) {
       if (err) throw err
