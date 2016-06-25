@@ -78,7 +78,7 @@ test('sendy', function (t) {
     })
 
     let object
-    alice.signNSend({
+    alice.signAndSend({
       object: { [TYPE]: 'ho', hey: 'hey' },
       to: bob._recipientOpts
     }, function (err, result) {

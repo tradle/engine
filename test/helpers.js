@@ -168,7 +168,7 @@ exports.send = function send (from, to, object, cb) {
 
   object = object || { [TYPE]: 'blah', a: 1 }
 
-  from.signNSend({
+  from.signAndSend({
     object: object,
     author: from._senderOpts,
     to: to._recipientOpts

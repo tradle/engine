@@ -121,7 +121,7 @@ test('basic send/receive', function (t) {
     }
 
     let sent
-    alice.signNSend({
+    alice.signAndSend({
       object: obj,
       to: bob._recipientOpts,
     }, function (err, result) {
@@ -156,7 +156,7 @@ test('get unsent to recipient', function (t) {
     helpers.connect(friends)
 
     const obj = { [TYPE]: 'hey', message: 'ho' }
-    alice.signNSend({ object: obj , to: bob._recipientOpts }, err => {
+    alice.signAndSend({ object: obj , to: bob._recipientOpts }, err => {
       if (err) throw err
 
       async.parallel([

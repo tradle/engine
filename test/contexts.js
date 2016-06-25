@@ -71,7 +71,7 @@ exports.twoFriendsSentReceived = function (object, cb) {
     }
 
     const result = { sender, receiver, friends }
-    sender.signNSend({
+    sender.signAndSend({
       object: object,
       to: receiver._recipientOpts,
     }, function (err, wrapper) {
