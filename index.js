@@ -1,6 +1,7 @@
 
 const tradle = module.exports = exports
 // tradle.keeper = require('./lib/keeper')
+tradle.protocol = require('@tradle/protocol')
 tradle.sender = require('./lib/sender')
 tradle.sealer = require('./lib/sealer')
 tradle.sealwatch = require('./lib/sealwatch')
@@ -16,9 +17,10 @@ tradle.retrystream = require('./lib/retrystream')
 tradle.validator = require('./lib/validator')
 tradle.types = require('./lib/types')
 tradle.utils = require('./lib/utils')
-tradle.constants = {
-  status: require('./lib/status'),
-  topics: require('./lib/topics')
-}
+tradle.constants = require('./lib/constants')
+// tradle.constants = {
+//   status: require('./lib/status'),
+//   topics: require('./lib/topics')
+// }
 
 tradle.node = require('./lib/node')
