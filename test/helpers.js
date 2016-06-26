@@ -145,7 +145,7 @@ exports.userToOpts = function userToOpts (user, name) {
 
 exports.createNode = function createNode (opts) {
   const networkName = opts.networkName || DEFAULT_NETWORK_NAME
-  const priv = utils.chainKey(opts.keys).toJSON(true).priv
+  const priv = utils.chainKey(opts.keys).priv
   const transactor = opts.transactor || helpers.transactor(priv, opts.blockchain)
   const blockchain = opts.blockchain || transactor.blockchain
   opts = utils.extend(opts, {

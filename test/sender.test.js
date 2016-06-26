@@ -78,6 +78,7 @@ test('try again', function (t) {
   // const unsent = batch.map(row => row.value).filter(val => val[TYPE] === MESSAGE_TYPE)
   let failuresToGo = 3
   const sender = createSender({
+    name: 'sender',
     send: function (msg, recipient, cb) {
       t.ok(sender.isRunning())
 

@@ -49,6 +49,7 @@
     "@tradle/test-helpers": "^1.3.0",
     "memdown": "^1.1.2",
     "minimist": "^1.2.0",
+    "random-name": "^0.1.1",
     "sendy": "^2.0.1",
     "sendy-otr": "^2.0.0",
     "sendy-ws": "^1.2.4",
