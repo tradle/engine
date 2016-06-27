@@ -77,7 +77,7 @@ exports.twoFriendsSentReceived = function (object, cb) {
     }, function (err, wrapper) {
       if (err) throw err
 
-      result.object = wrapper.object
+      result.object = wrapper.message.object
     })
 
     let togo = 2

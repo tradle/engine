@@ -20,6 +20,7 @@
     "changes-feed": "mvayngrib/changes-feed",
     "debug": "^2.2.0",
     "deep-equal": "^1.0.1",
+    "duplexify": "^3.4.3",
     "error": "^7.0.2",
     "feed-indexer": "tradle/feed-indexer",
     "hydration": "mvayngrib/hydration",

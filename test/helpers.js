@@ -180,7 +180,7 @@ exports.send = function send (from, to, object, cb) {
     let togo = 2
 
     function onsent (msg) {
-      if (deepEqual(msg.object, result.object)) {
+      if (deepEqual(msg.object, result.message.object)) {
         // console.log('sent', msg.object.object)
         from.removeListener('sent', onsent)
         done()
@@ -188,7 +188,7 @@ exports.send = function send (from, to, object, cb) {
     }
 
     function onreceived (msg) {
-      if (deepEqual(msg.object, result.object)) {
+      if (deepEqual(msg.object, result.message.object)) {
         // console.log('received', msg.object.object)
         to.removeListener('message', onreceived)
         done()
