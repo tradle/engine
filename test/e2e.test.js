@@ -361,7 +361,7 @@ test('conversation', function (t) {
           const friend1 = pair[0]
           const friend2 = pair[1]
 
-          friend1.conversation(friend2.permalink, function (err, msgs) {
+          friend1.conversation({ with: friend2.permalink }, function (err, msgs) {
             if (err) return done(err)
 
             t.equal(msgs.length, 2)
@@ -469,7 +469,7 @@ test('forget', function (t) {
     async.parallel(tasks, function (err) {
       if (err) throw err
 
-      collect(alice.objects.conversation(alice.permalink, bob.permalink), function (err, c) {
+      collect(alice.objects.conversation({ with: bob.permalink }), function (err, c) {
         if (err) throw err
 
         t.equal(c.length, 2)
@@ -478,10 +478,10 @@ test('forget', function (t) {
 
           async.parallel([
             function aliceAndBob (done) {
-              collect(alice.objects.conversation(alice.permalink, bob.permalink), done)
+              collect(alice.objects.conversation({ with: bob.permalink }), done)
             },
             function aliceAndCarol (done) {
-              collect(alice.objects.conversation(alice.permalink, carol.permalink), done)
+              collect(alice.objects.conversation({ with: carol.permalink }), done)
             }
           ], function (err, conversations) {
             if (err) throw err
@@ -493,6 +493,47 @@ test('forget', function (t) {
           })
         })
       })
+    })
+  })
+})
+
+test('last', function (t) {
+  contexts.twoFriendsSentReceived(function (err, context) {
+    if (err) throw err
+
+    const msg = context.message.object
+    async.parallel([
+      function (done) {
+        context.sender.objects.lastMessage({ to: context.receiver.permalink }, function (err, last) {
+          t.error(err)
+          t.same(last.object, msg)
+          done()
+        })
+      },
+      function (done) {
+        context.receiver.objects.lastMessage({ from: context.sender.permalink }, function (err, last) {
+          t.error(err)
+          t.same(last.object, msg)
+          done()
+        })
+      },
+      function (done) {
+        context.receiver.objects.lastMessage({ to: context.sender.permalink }, function (err, last) {
+          t.ok(err)
+          done()
+        })
+      },
+      function (done) {
+        context.sender.objects.lastMessage({ from: context.receiver.permalink }, function (err, last) {
+          t.ok(err)
+          done()
+        })
+      }
+    ], err => {
+      if (err) throw err
+
+      context.destroy()
+      t.end()
     })
   })
 })
