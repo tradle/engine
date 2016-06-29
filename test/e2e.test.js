@@ -21,6 +21,7 @@ const createSender = require('../lib/sender')
 const constants = require('../lib/constants')
 const PREVLINK = constants.PREVLINK
 const SEQ = constants.SEQ
+const SIG = constants.SIG
 const TYPE = constants.TYPE
 const retrystream = require('../lib/retrystream')
 const SHORT_BACKOFF_OPTS = {
@@ -556,6 +557,45 @@ test('message sequencing', function (t) {
       t.end()
     })
   })
+})
+
+// TODO: get this working without timeout
+test.skip('update identity', function (t) {
+  const alice = contexts.nUsers(1)[0]
+  const newIdentity = utils.clone(alice.identity)
+  newIdentity.pubkeys = newIdentity.pubkeys.slice()
+  delete newIdentity[SIG]
+
+  const keys = alice.keys.slice()
+  const newKey = utils.genKey({
+    type: 'ec',
+    curve: 'ed25519'
+  }).set('purpose', 'goof off')
+
+  keys.push(newKey)
+  newIdentity.pubkeys.push(newKey.toJSON())
+  // setTimeout(() => {
+  alice.updateIdentity({
+    keys: keys,
+    identity: newIdentity
+  }, err => {
+    t.error(err)
+
+    // alice.destroy()
+    t.same(newIdentity, protocol.body(alice.identity))
+    alice.addressBook.lookupIdentity(newKey.toJSON(), function (err, result) {
+      t.error(err)
+
+      // alice.destroy()
+      t.same(protocol.body(result.object), newIdentity)
+      alice.objects.byPermalink(result.permalink, function (err, result) {
+        t.error(err)
+        t.end()
+        alice.destroy()
+      })
+    })
+  })
+  // }, 100)
 })
 
 function rethrow (err) {

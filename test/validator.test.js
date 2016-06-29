@@ -37,7 +37,7 @@ test('validator', function (t) {
         bad.link = 'heyho'
         const somethingElse = { [TYPE]: 'something', what: 'else' }
         sender.sign({ object: somethingElse }, function (err, result) {
-          bad.object[SIG] = result[SIG]
+          bad.object[SIG] = result.object[SIG]
           validate(bad, function (err) {
             t.equal(err.type, 'invalidsignature')
             context.destroy()

@@ -11,6 +11,7 @@ const PREVLINK = constants.PREVLINK
 const LINK = constants.LINK
 const TYPE = constants.TYPE
 const SIG = constants.SIG
+const SEQ = constants.SEQ
 const MESSAGE_TYPE = constants.TYPES.MESSAGE
 const topics = require('../lib/topics')
 const statuses = require('../lib/status')
@@ -37,6 +38,7 @@ test('try again', function (t) {
 
   const objs = [
     {
+      [SEQ]: 0,
       [TYPE]: MESSAGE_TYPE,
       recipientPubKey: alicePubKey,
       object: {
@@ -48,6 +50,7 @@ test('try again', function (t) {
       b: 1
     },
     {
+      [SEQ]: 0,
       [TYPE]: MESSAGE_TYPE,
       recipientPubKey: alicePubKey,
       object: {
@@ -124,6 +127,7 @@ test('try again', function (t) {
       // check that live stream is working
 
       const obj = {
+        [SEQ]: 0,
         [TYPE]: MESSAGE_TYPE,
         recipientPubKey: alicePubKey,
         object: {
@@ -146,6 +150,7 @@ test('try again', function (t) {
 
       const signed = result.object
       if (object[TYPE] === MESSAGE_TYPE) unsent.push(signed)
+
       const wrapper = { object: signed, author: authorLink, recipient: recipientLink }
       utils.addLinks(wrapper)
       keyToVal[wrapper.link] = signed
