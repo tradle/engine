@@ -20,6 +20,7 @@ const createSealer = require('../lib/sealer')
 const createSender = require('../lib/sender')
 const constants = require('../lib/constants')
 const PREVLINK = constants.PREVLINK
+const SEQ = constants.SEQ
 const TYPE = constants.TYPE
 const retrystream = require('../lib/retrystream')
 const SHORT_BACKOFF_OPTS = {
@@ -533,6 +534,25 @@ test('last', function (t) {
       if (err) throw err
 
       context.destroy()
+      t.end()
+    })
+  })
+})
+
+test('message sequencing', function (t) {
+  contexts.twoFriendsSentReceived(function (err, context) {
+    if (err) throw err
+
+    const sender = context.sender
+    const receiver = context.receiver
+    sender.signAndSend({
+      object: { [TYPE]: 'blah', a: 1 },
+      to: receiver._recipientOpts
+    }, function (err, result) {
+      if (err) throw err
+
+      context.destroy()
+      t.equal(result.message.object[SEQ], 1)
       t.end()
     })
   })
