@@ -5,12 +5,13 @@ const test = require('tape')
 const Sendy = require('sendy')
 const SendyWS = require('sendy-ws')
 const WebSocketRelay = require('sendy-ws-relay')
+const memdown = require('memdown')
 const WebSocketClient = SendyWS.Client
 const createSwitchboard = SendyWS.Switchboard
 const OTRClient = require('sendy-otr')
 // const nkey = require('nkey')
 // const nkeyEC = require('nkey-ec')
-// const createKeeper = require('@tradle/keeper')
+const createKeeper = require('@tradle/keeper')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE
 const utils = require('../lib/utils')
@@ -21,6 +22,13 @@ const SENDY_OPTS = { resendInterval: 1000, autoConnect: true }
 // const newOTRSwitchboard = require('sendy-otr-ws').Switchboard
 
 test('sendy', function (t) {
+  const helpersKeeper = helpers.keeper
+  helpers.keeper = createKeeper.bind(null, {
+    encryption: { password: 'something' },
+    db: memdown,
+    path: 'some/path'
+  })
+
   contexts.twoFriends(function (err, friends) {
     if (err) throw err
 
@@ -91,6 +99,7 @@ test('sendy', function (t) {
       friends.forEach(friend => friend.destroy())
       transports.forEach(transport => transport.destroy())
       relay.destroy()
+      helpers.keeper = helpersKeeper
       t.end()
     }
   })
