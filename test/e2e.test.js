@@ -261,7 +261,7 @@ test('receiver seals', function (t) {
 })
 
 test('`readseal` emitted once', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(2000)
   contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
     const dude = context.sender
     for (var i = 0; i < dude.confirmedAfter; i++) {
