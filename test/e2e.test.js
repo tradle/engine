@@ -475,9 +475,10 @@ test('forget', function (t) {
         if (err) throw err
 
         t.equal(c.length, 2)
-        alice.forget(bob.permalink, function (err) {
+        alice.forget(bob.permalink, function (err, forgotten) {
           if (err) throw err
 
+          t.equal(forgotten.length, 2)
           async.parallel([
             function aliceAndBob (done) {
               collect(alice.objects.conversation({ with: bob.permalink }), done)
