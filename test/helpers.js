@@ -92,7 +92,7 @@ exports.pairs = function pairs (arr) {
 
 exports.connect = function connect (nodes) {
   nodes.forEach(a => {
-    const myInfo = { link: a.identityInfo.link }
+    const myInfo = { permalink: a.identityInfo.link }
     a._send = function (msg, recipient, cb) {
       const b = utils.find(nodes, a => {
         return a.permalink === recipient.permalink

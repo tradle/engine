@@ -42,6 +42,8 @@ test('try again', function (t) {
       [TYPE]: MESSAGE_TYPE,
       recipientPubKey: alicePubKey,
       object: {
+        [TYPE]: 'a',
+        [SIG]: 'blah',
         a: 1
       }
     },
@@ -54,6 +56,8 @@ test('try again', function (t) {
       [TYPE]: MESSAGE_TYPE,
       recipientPubKey: alicePubKey,
       object: {
+        [TYPE]: 'c',
+        [SIG]: 'blah',
         c: 1
       }
     }
@@ -131,6 +135,8 @@ test('try again', function (t) {
         [TYPE]: MESSAGE_TYPE,
         recipientPubKey: alicePubKey,
         object: {
+          [TYPE]: 'something',
+          [SIG]: 'blah',
           d: 1
         }
       }

@@ -82,11 +82,11 @@ test('`createObject`', function (t) {
     })
   })
 
-  alice.createObject({ object: utils.clone(object) }, err => {
-    t.ok(err)
-    t.equal(err.type, 'saving')
-    // t.equal(err.type, 'exists')
-  })
+  // alice.createObject({ object: utils.clone(object) }, err => {
+  //   t.ok(err)
+  //   t.equal(err.type, 'saving')
+  //   // t.equal(err.type, 'exists')
+  // })
 })
 
 // test('unchained self', function (t) {
@@ -556,6 +556,60 @@ test('message sequencing', function (t) {
       context.destroy()
       t.equal(result.message.object[SEQ], 1)
       t.end()
+    })
+  })
+})
+
+test('messagesWithObject', function (t) {
+  contexts.nFriends(3, function (err, friends) {
+    if (err) throw err
+
+    helpers.connect(friends)
+
+    const alice = friends[0]
+    const bob = friends[1]
+    const carol = friends[2]
+    const unsigned = {
+      [TYPE]: 'whatever',
+      hey: 'ho'
+    }
+
+    let link
+    alice.sign({ object: unsigned }, function (err, result) {
+      if (err) throw err
+
+      const object = result.object
+      link = protocol.linkString(object)
+      async.series([
+        taskCB => alice.send({ object, to: bob._recipientOpts }, taskCB),
+        taskCB => bob.send({ object, to: carol._recipientOpts }, taskCB),
+        taskCB => carol.send({ object, to: alice._recipientOpts }, taskCB)
+      ], function (err, results) {
+        if (err) throw err
+
+        // send same object
+        alice.send({ link, to: bob._recipientOpts }, rethrow)
+      })
+    })
+
+    let togo = 2
+    bob.on('message', msg => {
+      if (--togo) return
+
+      async.parallel([
+        taskCB => alice.objects.messagesWithObject({ permalink: link, link: link }, taskCB),
+        taskCB => bob.objects.messagesWithObject({ permalink: link, link: link }, taskCB),
+        taskCB => carol.objects.messagesWithObject({ permalink: link, link: link }, taskCB)
+      ], function (err, results) {
+        if (err) throw err
+
+        t.equal(results[0].length, 3)
+        t.equal(results[1].length, 3)
+        t.equal(results[2].length, 2)
+
+        friends.forEach(friend => friend.destroy())
+        t.end()
+      })
     })
   })
 })
