@@ -20,7 +20,6 @@
     "changes-feed": "mvayngrib/changes-feed",
     "debug": "^2.2.0",
     "deep-equal": "^1.0.1",
-    "duplexify": "^3.4.3",
     "error": "^7.0.2",
     "feed-indexer": "tradle/feed-indexer",
     "hydration": "mvayngrib/hydration",
@@ -30,7 +29,6 @@
     "levelup": "^1.3.1",
     "lexicographic-integer": "^1.1.0",
     "map-stream": "0.0.6",
-    "memdown": "^1.1.2",
     "mutexify": "^1.1.0",
     "nkey-bitcoin": "tradle/nkey-bitcoin",
     "nkey-dsa": "tradle/nkey-dsa",
@@ -48,7 +46,7 @@
     "xtend": "^4.0.1"
   },
   "devDependencies": {
-    "@tradle/keeper": "^1.0.0",
+    "@tradle/keeper": "tradle/keeper",
     "@tradle/simple-wallet": "^1.2.0",
     "@tradle/test-helpers": "^1.3.0",
     "memdown": "^1.1.2",
@@ -59,7 +57,6 @@
     "sendy-ws": "^1.2.4",
     "sendy-ws-relay": "^1.1.3",
     "tap": "^5.7.2",
-    "tape": "^4.5.1",
-    "why-is-node-running": "^1.2.2"
+    "tape": "^4.5.1"
   }
 }
