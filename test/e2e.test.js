@@ -315,7 +315,7 @@ test('detect next version', function (t) {
         basePubKey: newSealer.chainPubKey
       }, rethrow)
 
-      newAuditor.on('newversionseal', _seal => {
+      newAuditor.on('newversion', _seal => {
         t.equal(_seal.sealPrevAddress, seal.sealPrevAddress)
         t.equal(_seal.prevLink, seal.prevLink)
         done()
