@@ -439,8 +439,12 @@ test('delete watch after X confirmed', function (t) {
         if (err) throw err
 
         t.equal(watches.length, expected)
-        if (cb) cb()
+        // test lookup API
+        async.each(watches, function iterator (watch, done) {
+          node.watches.findOne('address', watch.address, done)
+        }, cb)
       })
+
     }
   })
 })
@@ -455,18 +459,15 @@ test('forget', function (t) {
 
     helpers.connect([alice, bob, carol])
 
-    const tasks = friends.map(friend1 => {
-      return friends.map(friend2 => {
-        if (friend1 !== friend2) {
-          const obj = { [TYPE]: 'hey', message: friend2.name }
-          return cb => helpers.send(friend1, friend2, obj, cb)
-        }
-      })
+    const pairs = helpers.pairs(friends)
+    const tasks = pairs.map(pair => {
+      const obj = { [TYPE]: 'hey', message: pair[1].name }
+      return cb => helpers.send(pair[0], pair[1], obj, cb)
     })
-    .reduce(function (arr, next) {
-      return next ? arr.concat(next) : arr
-    }, [])
-    .filter(task => task) // filter out nulls
+    // .reduce(function (arr, next) {
+    //   return next ? arr.concat(next) : arr
+    // }, [])
+    // .filter(task => task) // filter out nulls
 
     async.parallel(tasks, function (err) {
       if (err) throw err
