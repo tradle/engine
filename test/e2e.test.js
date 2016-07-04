@@ -72,7 +72,7 @@ test('`createObject`', function (t) {
     if (err) throw err
 
     async.parallel([
-      done => alice.objects.get(result.link, done),
+      done => alice.objects.get({ link: result.link, body: false }, done),
       done => alice.keeper.get(result.link, done)
     ], err => {
       if (err) throw err
