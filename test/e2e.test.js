@@ -363,7 +363,7 @@ test('conversation', function (t) {
           const friend1 = pair[0]
           const friend2 = pair[1]
 
-          friend1.conversation({ with: friend2.permalink }, function (err, msgs) {
+          collect(friend1.conversation({ with: friend2.permalink }), function (err, msgs) {
             if (err) return done(err)
 
             t.equal(msgs.length, 2)
@@ -597,9 +597,9 @@ test('messagesWithObject', function (t) {
       if (--togo) return
 
       async.parallel([
-        taskCB => alice.objects.messagesWithObject({ permalink: link, link: link }, taskCB),
-        taskCB => bob.objects.messagesWithObject({ permalink: link, link: link }, taskCB),
-        taskCB => carol.objects.messagesWithObject({ permalink: link, link: link }, taskCB)
+        taskCB => collect(alice.objects.messagesWithObject({ permalink: link, link: link }), taskCB),
+        taskCB => collect(bob.objects.messagesWithObject({ permalink: link, link: link }), taskCB),
+        taskCB => collect(carol.objects.messagesWithObject({ permalink: link, link: link }), taskCB)
       ], function (err, results) {
         if (err) throw err
 
