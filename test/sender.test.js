@@ -107,10 +107,10 @@ test('try again', function (t) {
     },
     objects: objectDB,
     actions: actions,
-    backoff: createBackoff.exponential({
+    backoffOptions: {
       initialDelay: 100,
       maxDelay: 1000
-    })
+    }
   })
 
   objectDB.on('sent', function (wrapper) {
