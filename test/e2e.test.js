@@ -615,6 +615,47 @@ test('messagesWithObject', function (t) {
   })
 })
 
+test('object publish status', function (t) {
+  // TODO: test prevLink
+  contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
+    if (err) throw err
+
+    async.parallel([
+      function (done) {
+        context.receiver.objectSealStatus(context.message, function (err, status) {
+          if (err) throw err
+
+          t.ok(status.link)
+          t.ok(status.permalink)
+          t.notOk(status.prevLink)
+          t.ok(status.watches.link)
+          t.ok(status.watches.permalink)
+          t.notOk(status.watches.prevLink)
+          done()
+        })
+      },
+      function (done) {
+        context.receiver.objectSealStatus({ object: context.message.object.object }, function (err, status) {
+          if (err) throw err
+
+          t.notOk(status.link)
+          t.notOk(status.permalink)
+          t.notOk(status.prevLink)
+          t.notOk(status.watches.link)
+          t.notOk(status.watches.permalink)
+          t.notOk(status.watches.prevLink)
+          done()
+        })
+      }
+    ], err => {
+      if (err) throw err
+
+      context.destroy()
+      t.end()
+    })
+  })
+})
+
 // TODO: get this working without timeout
 test.skip('update identity', function (t) {
   const alice = contexts.nUsers(1)[0]
