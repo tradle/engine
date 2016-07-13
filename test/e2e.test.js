@@ -19,6 +19,7 @@ const Node = require('../lib/node')
 const createSealer = require('../lib/sealer')
 const createSender = require('../lib/sender')
 const constants = require('../lib/constants')
+const users = require('./fixtures/users')
 const PREVLINK = constants.PREVLINK
 const SEQ = constants.SEQ
 const SIG = constants.SIG
@@ -653,6 +654,43 @@ test('object publish status', function (t) {
       context.destroy()
       t.end()
     })
+  })
+})
+
+test('custom merkle', function (t) {
+  // TODO: test prevLink
+  const defaultMerkleOpts = protocol.DEFAULT_MERKLE_OPTS
+  protocol.DEFAULT_MERKLE_OPTS = {
+    leaf: function (a) {
+      return new Buffer(a.data)
+    },
+    parent: function (a, b) {
+      return Buffer.concat([a.hash, b.hash])
+    }
+  }
+
+  const nodes = new Array(2).fill(null).map((n, i) => {
+    const opts = helpers.userToOpts(users[i], helpers.names[i])
+    return helpers.createNode(opts)
+  })
+
+  helpers.meet(nodes, function (err) {
+    if (err) throw err
+
+    helpers.connect(nodes)
+    const alice = nodes[0]
+    const bob = nodes[1]
+    bob.on('message', function (m) {
+      protocol.DEFAULT_MERKLE_OPTS = defaultMerkleOpts
+      nodes.forEach(node => node.destroy())
+      t.pass('received msg with custom merkling')
+      t.end()
+    })
+
+    alice.signAndSend({
+      to: bob._recipientOpts,
+      object: { [TYPE]: 'hey', ho: 'yea!' }
+    }, rethrow)
   })
 })
 
