@@ -21,6 +21,7 @@ const createSender = require('../lib/sender')
 const constants = require('../lib/constants')
 const users = require('./fixtures/users')
 const PREVLINK = constants.PREVLINK
+const PERMALINK = constants.PERMALINK
 const SEQ = constants.SEQ
 const SIG = constants.SIG
 const TYPE = constants.TYPE
@@ -691,6 +692,56 @@ test('custom merkle', function (t) {
       to: bob._recipientOpts,
       object: { [TYPE]: 'hey', ho: 'yea!' }
     }, rethrow)
+  })
+})
+
+// test.only('keeper missing file', function (t) {
+//   contexts.twoFriendsSentReceived(function (err, context) {
+//     if (err) throw err
+
+//     context.sender.keeper.del(context.message.link, err => {
+//       context.sender.objects.lastMessage({ to: context.receiver.permalink }, err => {
+//         t.ok(err)
+//         t.end()
+//         context.destroy()
+//       })
+//     })
+//   })
+// })
+
+test('versioning can only be done by previous author', function (t) {
+  contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
+    if (err) throw err
+
+    const sender = context.sender
+    const receiver = context.receiver
+    const v2 = utils.clone(context.message.object.object)
+    v2[PREVLINK] = v2[PERMALINK] = protocol.linkString(v2)
+    v2.z = v2.z ? 0 : 1
+    async.parallel([
+      taskCB => sender.sign({ object: v2 }, taskCB),
+      taskCB => receiver.sign({ object: v2 }, taskCB)
+    ], function (err, results) {
+      if (err) throw err
+
+      const valid = results[0].object
+      const invalid = results[1].object
+      async.parallel([
+        taskCB => sender.validator.validate({ object: valid }, err => {
+          t.error(err)
+          taskCB(err)
+        }),
+        taskCB => sender.validator.validate({ object: invalid }, err => {
+          t.ok(err)
+          taskCB()
+        })
+      ], function (err, results) {
+        if (err) throw err
+
+        t.end()
+        context.destroy()
+      })
+    })
   })
 })
 
