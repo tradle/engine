@@ -87,7 +87,7 @@ test('try again', function (t) {
   const sender = createSender({
     name: 'sender',
     send: function (msg, recipient, cb) {
-      msg = protocol.unserializeMessage(msg)
+      msg = utils.unserializeMessage(msg)
       t.ok(sender.isRunning())
 
       // 2 + 3 times

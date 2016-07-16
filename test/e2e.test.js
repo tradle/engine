@@ -192,7 +192,7 @@ test('don\'t receive duplicate messages', function (t) {
     if (err) throw err
 
     const msg = context.message.object
-    context.receiver.receive(protocol.serializeMessage(msg), context.sender._recipientOpts, function (err) {
+    context.receiver.receive(utils.serializeMessage(msg), context.sender._recipientOpts, function (err) {
       t.ok(err)
       context.destroy()
       t.end()
@@ -200,27 +200,24 @@ test('don\'t receive duplicate messages', function (t) {
   })
 })
 
-// test.only('do receive messages carrying already known objects', function (t) {
-//   t.timeoutAfter(1000)
+test('do receive messages carrying already known objects', function (t) {
+  t.timeoutAfter(1000)
 
-//   const unsigned = {
-//     [TYPE]: 'blah',
-//     a: 1,
-//     b: 2
-//   }
+  contexts.twoFriendsSentReceived(function (err, context) {
+    if (err) throw err
 
-//   contexts.twoFriendsSentReceived(unsigned, function (err, context) {
-//     if (err) throw err
+    context.sender.signAndSend({
+      object: context.object.object,
+      to: context.receiver._recipientOpts
+    }, rethrow)
 
-//     context.received.receive(, context.sender._recipientOpts, rethrow)
-
-//     context.receiver.on('message', function (msg) {
-//       t.same(msg.object.object, context.object.object)
-//       context.destroy()
-//       t.end()
-//     })
-//   })
-// })
+    context.receiver.on('message', function (msg) {
+      t.same(msg.object.object, context.object.object)
+      context.destroy()
+      t.end()
+    })
+  })
+})
 
 test('sender seals', function (t) {
   t.timeoutAfter(1000)
@@ -741,6 +738,34 @@ test('versioning can only be done by previous author', function (t) {
         t.end()
         context.destroy()
       })
+    })
+  })
+})
+
+test('custom message props', function (t) {
+  contexts.twoFriends(function (err, friends) {
+    if (err) throw err
+
+    helpers.connect(friends)
+
+    const alice = friends[0]
+    const bob = friends[1]
+    alice.signAndSend({
+      object: { [TYPE]: 'hey', 'ho': 'heyho' },
+      to: bob._recipientOpts,
+      other: {
+        ooga: 'booga'
+      }
+    }, function (err, result) {
+      if (err) throw err
+
+      t.equal(result.message.object.ooga, 'booga')
+    })
+
+    bob.on('message', msg => {
+      t.equal(msg.object.ooga, 'booga')
+      t.end()
+      friends.forEach(friend => friend.destroy())
     })
   })
 })
