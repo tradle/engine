@@ -13,7 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "@tradle/bitcoinjs-lib": "^1.6.0",
-    "@tradle/protocol": "^1.1.0",
+    "@tradle/protocol": "tradle/protocol#dev",
     "async": "^2.0.0-rc.4",
     "backoff": "^2.5.0",
     "bs58check": "^1.0.8",
