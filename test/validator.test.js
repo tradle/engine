@@ -22,14 +22,14 @@ test('validator', function (t) {
     validate({
       object: object,
       author: context.sender._recipientOpts
-    }, function (err) {
+    }, { unique: true }, function (err) {
       t.equal(err.type, 'exists')
 
       let bad = utils.clone(wrapper)
       bad.author = { link: context.receiver.link }
       // change link to avoid ObjectExists error
       bad.link = 'heyho'
-      validate(bad, function (err) {
+      validate(bad, { unique: true }, function (err) {
         t.equal(err.type, 'author')
 
         bad = utils.clone(wrapper)
@@ -38,7 +38,7 @@ test('validator', function (t) {
         const somethingElse = { [TYPE]: 'something', what: 'else' }
         sender.sign({ object: somethingElse }, function (err, result) {
           bad.object[SIG] = result.object[SIG]
-          validate(bad, function (err) {
+          validate(bad, { unique: true }, function (err) {
             t.equal(err.type, 'invalidsignature')
             context.destroy()
             t.end()

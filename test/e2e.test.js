@@ -770,6 +770,24 @@ test('custom message props', function (t) {
   })
 })
 
+test('send sealed', function (t) {
+  contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
+    if (err) throw err
+
+    context.sender.send({
+      to: context.receiver._recipientOpts,
+      link: context.sent.link,
+      seal: true
+    }, rethrow)
+
+    context.receiver.watchSeal = function (seal) {
+      t.equal(seal.link, context.sent.link)
+      t.end()
+      context.destroy()
+    }
+  })
+})
+
 // TODO: get this working without timeout
 test.skip('update identity', function (t) {
   const alice = contexts.nUsers(1)[0]
