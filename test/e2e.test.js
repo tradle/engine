@@ -788,8 +788,7 @@ test('send sealed', function (t) {
   })
 })
 
-// TODO: get this working without timeout
-test.skip('update identity', function (t) {
+test('update identity', function (t) {
   const alice = contexts.nUsers(1)[0]
   const newIdentity = utils.clone(alice.identity)
   newIdentity.pubkeys = newIdentity.pubkeys.slice()
@@ -803,19 +802,15 @@ test.skip('update identity', function (t) {
 
   keys.push(newKey)
   newIdentity.pubkeys.push(newKey.toJSON())
-  // setTimeout(() => {
   alice.updateIdentity({
     keys: keys,
     identity: newIdentity
   }, err => {
     t.error(err)
 
-    // alice.destroy()
     t.same(newIdentity, protocol.body(alice.identity))
     alice.addressBook.lookupIdentity(newKey.toJSON(), function (err, result) {
       t.error(err)
-
-      // alice.destroy()
       t.same(protocol.body(result.object), newIdentity)
       alice.objects.byPermalink(result.permalink, function (err, result) {
         t.error(err)
@@ -824,7 +819,6 @@ test.skip('update identity', function (t) {
       })
     })
   })
-  // }, 100)
 })
 
 function rethrow (err) {
