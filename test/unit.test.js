@@ -10,6 +10,7 @@ const collect = require('stream-collector')
 const controls = require('../lib/controls')
 const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
+const users = require('./fixtures/users')
 
 test('merge streams', function (t) {
   t.plan(1)
@@ -302,6 +303,21 @@ test('controls', function (t) {
 
   c.start()
   t.ok(c.isRunning())
+
+  t.end()
+})
+
+test('identity serialization', function (t) {
+  users.slice(0, 1).forEach(u => {
+    const identity = u.identity
+    identity.pubkeys.forEach(function (p) {
+      const deserialized = utils.deserializePubKey(utils.serializePubKey(p))
+      t.same(deserialized, p)
+    })
+
+    const deserialized = utils.deserializeIdentity(utils.serializeIdentity(identity))
+    t.same(deserialized, identity)
+  })
 
   t.end()
 })
