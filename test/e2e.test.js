@@ -22,6 +22,7 @@ const constants = require('../lib/constants')
 const users = require('./fixtures/users')
 const PREVLINK = constants.PREVLINK
 const PERMALINK = constants.PERMALINK
+const MESSAGE_TYPE = constants.MESSAGE_TYPE
 const SEQ = constants.SEQ
 const SIG = constants.SIG
 const TYPE = constants.TYPE
@@ -820,6 +821,146 @@ test('update identity', function (t) {
     })
   })
 })
+
+test('receiving forwarded messages', function (t) {
+  contexts.nFriends(3, function (err, friends) {
+    if (err) throw err
+
+    helpers.connect(friends)
+
+    const alice = friends[0]
+    const bob = friends[1]
+    const carol = friends[2]
+
+    let signed
+    alice.signAndSend({
+      object: {
+        [TYPE]: 'thang',
+        a: 1,
+        b: 2
+      },
+      to: bob._recipientOpts,
+    }, function (err, result) {
+      signed = result.object.object
+    })
+
+    bob.on('message', wrapper => {
+      carol.receive(wrapper.object, { permalink: wrapper.author }, function (err) {
+        if (err) throw err
+
+        collect(carol.objects.from({ eq: alice.permalink, body: true }), function (err, results) {
+          if (err) throw err
+
+          t.equal(results.length, 1)
+          t.same(results[0].object.object, signed)
+          t.end()
+          friends.forEach(friend => friend.destroy())
+        })
+      })
+    })
+  })
+})
+
+test.only('pause per recipient', function (t) {
+  contexts.nFriends(3, function (err, friends) {
+    if (err) throw err
+
+    helpers.connect(friends)
+
+    const alice = friends[0]
+    const bob = friends[1]
+    const carol = friends[2]
+
+    let signed
+    friends.slice(1).forEach(friend => {
+      alice.signAndSend({
+        object: {
+          [TYPE]: 'thang',
+          hey: friend.name
+        },
+        to: friend._recipientOpts,
+      }, function (err) {
+        if (err) throw err
+        if (friend !== bob) return
+        
+        for (var i = 0; i < n; i++) {
+          resumes.push(alice.sender.pause(bobPubKey))
+        }
+      })
+    })
+
+    const bobPubKey = utils.pubKeyString(bob._recipientOpts.pubKey)
+
+    // n times should work same as once
+    const n = 5
+    const resumes = []
+
+    bob.on('message', badReceiver)
+
+    carol.on('message', wrapper => {
+      t.pass()
+      setTimeout(function () {
+        bob.removeListener('message', badReceiver)
+        bob.on('message', goodReceiver)
+        resumes.forEach(fn => fn())
+      }, 1000)
+    })
+
+    function badReceiver () {
+      t.fail()
+    }
+
+    function goodReceiver () {
+      t.pass()
+      t.end()
+      // wait a bit to see if we get any duplicates
+      bob.on('message', badReceiver)
+      setTimeout(function () {
+        t.pass()
+        friends.forEach(friend => friend.destroy())
+      }, 1000)
+    }
+  })
+})
+
+// test.only('3-tier', function (t) {
+//   contexts.nFriends(3, function (err, friends) {
+//     if (err) throw err
+
+//     helpers.connect(friends)
+
+//     const alice = friends[0]
+//     const bob = friends[1]
+//     const carol = friends[2]
+
+//     let signed
+//     alice.signAndSend({
+//       object: {
+//         [TYPE]: 'thang',
+//         a: 1,
+//         b: 2
+//       },
+//       to: bob._recipientOpts,
+//     }, function (err, result) {
+//       signed = result.object.object
+//     })
+
+//     bob.on('message', wrapper => {
+//       bob.send({
+//         link: wrapper.link,
+//         to: carol._recipientOpts
+//       }, rethrow)
+//     })
+
+//     carol.on('message', function (wrapper) {
+//       if (wrapper.objectinfo.type !== MESSAGE_TYPE) return
+
+//       carol.receive(wrapper.object.object, { permalink: wrapper.objectinfo.author }, function (err, wrapper) {
+//         console.log(err || wrapper)
+//       })
+//     })
+//   })
+// })
 
 function rethrow (err) {
   if (err) throw err
