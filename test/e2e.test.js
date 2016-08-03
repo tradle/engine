@@ -861,7 +861,7 @@ test('receiving forwarded messages', function (t) {
   })
 })
 
-test.only('pause per recipient', function (t) {
+test('pause per recipient', function (t) {
   contexts.nFriends(3, function (err, friends) {
     if (err) throw err
 
@@ -882,9 +882,9 @@ test.only('pause per recipient', function (t) {
       }, function (err) {
         if (err) throw err
         if (friend !== bob) return
-        
+
         for (var i = 0; i < n; i++) {
-          resumes.push(alice.sender.pause(bobPubKey))
+          resumes.push(alice.sender.pause(bob.permalink))
         }
       })
     })

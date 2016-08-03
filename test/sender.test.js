@@ -66,6 +66,7 @@ test('try again', function (t) {
   const authorLink = 'bob'
   const recipientLink = 'alice'
   const bob = helpers.dummyIdentity(authorLink)
+  const alice = helpers.dummyIdentity(recipientLink)
 
   const changes = helpers.nextFeed()
   const actions = createActions({ changes })
@@ -103,6 +104,11 @@ test('try again', function (t) {
       // fake address book that does nothing
       byPubKey: function (identifier, cb) {
         cb(null, {})
+      },
+      byPermalink: function (permalink, cb) {
+        if (permalink === authorLink) return cb(null, bob)
+        if (permalink === recipientLink) return cb(null, alice)
+        else cb(new Error('NotFound'))
       }
     },
     objects: objectDB,
