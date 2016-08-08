@@ -5,6 +5,7 @@ const test = require('tape')
 const Sendy = require('sendy')
 const SendyWS = require('sendy-ws')
 const WebSocketRelay = require('sendy-ws-relay')
+const AxolotlClient = require('sendy-axolotl')
 const memdown = require('memdown')
 const WebSocketClient = SendyWS.Client
 const createSwitchboard = SendyWS.Switchboard
@@ -22,6 +23,8 @@ const SENDY_OPTS = { resendInterval: 1000, autoConnect: true }
 // const newOTRSwitchboard = require('sendy-otr-ws').Switchboard
 
 test('sendy', function (t) {
+  t.timeoutAfter(60000)
+  console.warn('this could take some time')
   const helpersKeeper = helpers.keeper
   helpers.keeper = createKeeper.bind(null, {
     encryption: { password: 'something' },
@@ -42,21 +45,25 @@ test('sendy', function (t) {
 
     const transports = friends.map(function (node, i) {
       const wsClient = new WebSocketClient({
-        url: url + '?from=' + getOTRFingerprint(node.identity),
+        url: url + '?from=' + getTLSPubKey(node.identity),
         autoConnect: true
       })
 
-      const otrKey = getOTRKey(node)
+      const tlsKey = getTLSKey(node)
       const transport = createSwitchboard({
-        identifier: otrKey.fingerprint,
+        identifier: tlsKey.pubKeyString,
         unreliable: wsClient,
         clientForRecipient: function (recipient) {
           const sendy = new Sendy(SENDY_OPTS)
           if (i) messUpConnection(sendy._client)
-          return new OTRClient({
-            key: otrKey.priv,
+
+          return new AxolotlClient({
+            key: {
+              secretKey: tlsKey.priv,
+              publicKey: tlsKey.pub
+            },
             client: sendy,
-            theirFingerprint: recipient
+            theirPubKey: new Buffer(recipient, 'hex')
           })
         }
       })
@@ -66,12 +73,18 @@ test('sendy', function (t) {
       })
 
       transport.on('message', function (msg, from) {
-        node.receive(msg, { fingerprint: from }, rethrow)
+        const pubKey = {
+          type: 'ec',
+          curve: 'curve25519',
+          pub: new Buffer(from, 'hex')
+        }
+
+        node.receive(msg, { pubKey }, rethrow)
       })
 
       node._send = function (msg, recipient, cb) {
-        const fingerprint = getOTRFingerprint(recipient.object)
-        return transport.send(fingerprint, msg, cb)
+        const pubKey = getTLSPubKey(recipient.object)
+        return transport.send(pubKey, msg, cb)
       }
 
       return transport
@@ -105,12 +118,12 @@ test('sendy', function (t) {
   })
 })
 
-function getOTRKey (node) {
-  return utils.find(node.keys, key => key.type === 'dsa')
+function getTLSKey (node) {
+  return utils.find(node.keys, key => key.get('purpose') === 'tls')
 }
 
-function getOTRFingerprint (identity) {
-  return utils.find(identity.pubkeys, key => key.type === 'dsa').fingerprint
+function getTLSPubKey (identity) {
+  return utils.find(identity.pubkeys, key => key.purpose === 'tls').pub
 }
 
 function rethrow (err) {
