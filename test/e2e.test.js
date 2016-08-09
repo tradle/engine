@@ -790,36 +790,74 @@ test('send sealed', function (t) {
 })
 
 test('update identity', function (t) {
-  const alice = contexts.nUsers(1)[0]
-  const newIdentity = utils.clone(alice.identity)
-  newIdentity.pubkeys = newIdentity.pubkeys.slice()
-  delete newIdentity[SIG]
-
-  const keys = alice.keys.slice()
+  const users = contexts.nUsers(2)
+  const alice = users[0]
+  const bob = users[1]
+  const oldIdentity = utils.clone(alice.identity)
   const newKey = utils.genKey({
     type: 'ec',
     curve: 'ed25519'
   }).set('purpose', 'goof off')
 
-  keys.push(newKey)
-  newIdentity.pubkeys.push(newKey.toJSON())
-  alice.updateIdentity({
-    keys: keys,
-    identity: newIdentity
-  }, err => {
-    t.error(err)
+  async.series([
+    testAlice,
+    testBob
+  ], err => {
+    if (err) throw err
 
-    t.same(newIdentity, protocol.body(alice.identity))
-    alice.addressBook.lookupIdentity(newKey.toJSON(), function (err, result) {
-      t.error(err)
-      t.same(protocol.body(result.object), newIdentity)
-      alice.objects.byPermalink(result.permalink, function (err, result) {
-        t.error(err)
-        t.end()
-        alice.destroy()
+    t.end()
+    users.forEach(u => u.destroy())
+  })
+
+  function testAlice (done) {
+    const newIdentity = utils.clone(oldIdentity)
+    newIdentity.pubkeys = newIdentity.pubkeys.slice()
+    delete newIdentity[SIG]
+    const keys = alice.keys.slice()
+
+    keys.push(newKey)
+    newIdentity.pubkeys.push(newKey.toJSON())
+    alice.updateIdentity({
+      keys: keys,
+      identity: newIdentity
+    }, err => {
+      if (err) throw err
+
+      t.same(newIdentity, protocol.body(alice.identity))
+      alice.addressBook.lookupIdentity(newKey.toJSON(), function (err, result) {
+        if (err) throw err
+
+        t.same(protocol.body(result.object), newIdentity)
+        alice.objects.byPermalink(alice.permalink, function (err, result) {
+          t.error(err)
+          t.equal(result.link, alice.link)
+          done(null, newIdentity)
+        })
       })
     })
-  })
+  }
+
+  function testBob (done) {
+    bob.addContact(oldIdentity, err => {
+      if (err) throw err
+
+      bob.addContact(alice.identity, err => {
+        if (err) throw err
+
+        async.each([
+          newKey.toJSON(),
+          { permalink: alice.permalink }
+        ], function iterator (identifier, onfound) {
+          bob.addressBook.lookupIdentity(identifier, function (err, result) {
+            if (err) throw err
+
+            t.same(result.object, alice.identity)
+            onfound()
+          })
+        }, done)
+      })
+    })
+  }
 })
 
 test('receiving forwarded messages', function (t) {
@@ -921,6 +959,133 @@ test('pause per recipient', function (t) {
       }, 1000)
     }
   })
+})
+
+test.skip('pairing protocol', function (t) {
+  const crypto = require('crypto')
+  const devices = contexts.nUsers(2)
+  const deviceOneFlow = createDeviceOneFlow(devices[0])
+  const deviceTwoFlow = createDeviceTwoFlow(devices[1])
+
+  async.waterfall([
+    deviceOneFlow.genPairingData,
+    deviceTwoFlow.sendPairingRequest,
+    deviceOneFlow.processPairingRequest,
+    deviceTwoFlow.processPairingResponse,
+  ], function (err) {
+    if (err) throw err
+
+    t.same(devices[0].identity, devices[1].identity)
+    devices.forEach(u => u.destroy())
+    t.end()
+  })
+
+  function createDeviceOneFlow (device) {
+
+    let pairingData
+
+    // needs sig?
+    function genPairingData (done) {
+      // TODO: use protocol buffers for this
+      pairingData = {
+        nonce: crypto.randomBytes(32).toString('base64'),
+        identity: device.permalink,
+        rendezvous: {
+          url: 'wss://some.server.com'
+        }
+      }
+
+      done(null, pairingData)
+    }
+
+    function processPairingRequest (pairingReq, done) {
+      // find pairingData by pairingReq
+      // maybe add a another nonce property to pairingData
+      // (pairingData.nonce has to stay private)
+
+      const verify = crypto.createHmac('sha256', pairingData.nonce)
+      verify.update(utils.stringify(utils.omit(pairingReq, 'auth')))
+      if (!verify.digest().equals(pairingReq.auth)) {
+        return done(new Error('invalid PairingRequest'))
+      }
+
+      const prev = device.identity
+      const allPubKeys = device.identity.pubkeys.concat(pairingReq.identity.pubkeys)
+      device.updateIdentity({
+        keys: device.keys.concat(pairingReq.identity.pubkeys),
+        identity: utils.clone(device.identity, {
+          pubkeys: allPubKeys.map(pk => utils.clone(pk))
+        })
+      }, err => {
+        if (err) return done(err)
+
+        const pairingRes = {
+          [TYPE]: 'tradle.PairingResponse',
+          // can we make it secure without sending prev?
+          prev: prev,
+          identity: device.identity
+        }
+
+        done(null, pairingRes)
+      })
+    }
+
+    return {
+      genPairingData,
+      processPairingRequest
+    }
+  }
+
+  function createDeviceTwoFlow (device) {
+
+    let pairingData
+
+    function sendPairingRequest (_pairingData, done) {
+      pairingData = _pairingData
+
+      // device 2 sends pairing request
+      const pairingReq = {
+        [TYPE]: 'tradle.PairingRequest',
+        identity: device.identity
+      }
+
+      const hmac = crypto.createHmac('sha256', pairingData.nonce)
+      hmac.update(utils.stringify(pairingReq))
+      pairingReq.auth = hmac.digest()
+      done(null, pairingReq)
+    }
+
+    function processPairingResponse (pairingRes, done) {
+      // device 2 validate response
+      if (utils.hexLink(pairingRes.prev) !== pairingData.identity) {
+        return done(new Error('prev identity does not match expected'))
+      }
+
+      const hasMyKeys = device.identity.pubkeys.every(myKey => {
+        return pairingRes.identity.pubkeys.some(theirKey => {
+          return deepEqual(theirKey, myKey)
+        })
+      })
+
+      if (!hasMyKeys) {
+        return done(new Error('received identity does not have my keys'))
+      }
+
+      async.series([
+        taskCB => device.addContact(pairingRes.prev, taskCB),
+        taskCB => device.addContact(pairingRes.identity, taskCB),
+        taskCB => device.setIdentity({
+          keys: device.keys.concat(pairingRes.identity.pubkeys),
+          identity: pairingRes.identity
+        }, taskCB)
+      ], done)
+    }
+
+    return {
+      sendPairingRequest,
+      processPairingResponse
+    }
+  }
 })
 
 // test.only('3-tier', function (t) {
