@@ -203,9 +203,15 @@ exports.send = function send (from, to, object, cb) {
   })
 }
 
-
 exports.nextDir = function nextDir () {
   return `./testdir/${INSTANCE_COUNT++}.db`
+}
+
+exports.resurrect = function (deadNode) {
+  return helpers.createNode(utils.pick(deadNode,
+    'networkName', 'blockchain', 'keeper', 'transactor', 'dir', 'leveldown',
+    'identity', 'keys', 'name'
+  ))
 }
 
 process.on('uncaughtException', function (err) {

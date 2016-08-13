@@ -50,7 +50,7 @@ test('self in address book', function (t) {
   // self should be in addressBook immediately
   t.timeoutAfter(1000)
 
-  const alice = contexts.nUsers(1)[0]
+  let alice = contexts.nUsers(1)[0]
   alice.actions.once('addcontact', function () {
     alice.addressBook.lookupIdentity(alice.identityInfo.link, function (err, identityInfo) {
       if (err) throw err
@@ -59,8 +59,25 @@ test('self in address book', function (t) {
       // log entry identifier
       delete identityInfo._
       t.same(alice.identityInfo, identityInfo)
+
       alice.destroy()
       t.end()
+    })
+  })
+})
+
+test('restart node', function (t) {
+  let alice = contexts.nUsers(1)[0]
+  alice.on('ready', function () {
+    alice.destroy(function (err) {
+      if (err) throw err
+
+      alice = helpers.resurrect(alice)
+      alice.on('ready', function () {
+        t.pass()
+        alice.destroy()
+        t.end()
+      })
     })
   })
 })
