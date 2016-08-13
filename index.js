@@ -23,4 +23,5 @@ tradle.constants = require('./lib/constants')
 //   topics: require('./lib/topics')
 // }
 
+tradle.protobuf = require('./lib/proto')
 tradle.node = require('./lib/node')
