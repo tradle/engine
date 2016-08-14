@@ -981,6 +981,7 @@ test('pause per recipient', function (t) {
 test.skip('pairing protocol', function (t) {
   const crypto = require('crypto')
   const devices = contexts.nUsers(2)
+  const permalink = devices[0].permalink
   const deviceOneFlow = createDeviceOneFlow(devices[0])
   const deviceTwoFlow = createDeviceTwoFlow(devices[1])
 
@@ -993,6 +994,8 @@ test.skip('pairing protocol', function (t) {
     if (err) throw err
 
     t.same(devices[0].identity, devices[1].identity)
+    t.same(devices[0].permalink, permalink)
+    t.same(devices[1].permalink, permalink)
     devices.forEach(u => u.destroy())
     t.end()
   })
@@ -1090,7 +1093,8 @@ test.skip('pairing protocol', function (t) {
 
       async.series([
         taskCB => device.addContact(pairingRes.prev, taskCB),
-        taskCB => device.addContact(pairingRes.identity, taskCB),
+        // overwrite existing
+        taskCB => device.addContact(pairingRes.identity, true, taskCB),
         taskCB => device.setIdentity({
           keys: device.keys.concat(pairingRes.identity.pubkeys),
           identity: pairingRes.identity
