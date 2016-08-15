@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: typeforce.js</title>
+    <title>JSDoc: Module: errors</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,38 +17,50 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: typeforce.js</h1>
+    <h1 class="page-title">Module: errors</h1>
 
     
 
 
 
+
+<section>
+
+<header>
     
-    <section>
-        <article>
-            <pre class="prettyprint source linenums"><code>
-/**
- * typeforce wrapper, disabled in production mode
- * @module typeforce
- */
+        
+    
+</header>
 
-const extend = require('xtend/mutable')
-const typeforce = require('typeforce')
-const debug = require('debug')('tradle:debug')
+<article>
+    <div class="container-overview">
+    
+        
 
-module.exports = extend(function typeforceWithDebug () {
-  if (!debug.enabled) return typeforce.apply(typeforce, arguments)
+        
+    
+    </div>
 
-  try {
-    return typeforce.apply(typeforce, arguments)
-  } catch (err) {
-    debug('typecheck failed: ' + err.tfError.stack, arguments)
-    throw err
-  }
-}, typeforce)
-</code></pre>
-        </article>
-    </section>
+    
+
+    
+
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
 
 
 

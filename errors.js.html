@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: typeforce.js</title>
+    <title>JSDoc: Source: errors.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: typeforce.js</h1>
+    <h1 class="page-title">Source: errors.js</h1>
 
     
 
@@ -26,26 +26,64 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>
-/**
- * typeforce wrapper, disabled in production mode
- * @module typeforce
+            <pre class="prettyprint source linenums"><code>/**
+ * @module  errors
  */
 
-const extend = require('xtend/mutable')
-const typeforce = require('typeforce')
-const debug = require('debug')('tradle:debug')
+const TypedError = require('error/typed')
+const constants = require('./constants')
+const LINK = constants.LINK
 
-module.exports = extend(function typeforceWithDebug () {
-  if (!debug.enabled) return typeforce.apply(typeforce, arguments)
+exports.ObjectExists = TypedError({
+  type: 'exists',
+  message: 'object {link} already exists',
+  link: null
+})
 
-  try {
-    return typeforce.apply(typeforce, arguments)
-  } catch (err) {
-    debug('typecheck failed: ' + err.tfError.stack, arguments)
-    throw err
-  }
-}, typeforce)
+exports.MessageExists = TypedError({
+  type: 'exists',
+  message: 'message {link} already exists',
+  link: null
+})
+
+exports.AlreadySaving = TypedError({
+  type: 'saving',
+  message: 'already saving object with link {link}',
+  link: null
+})
+
+exports.SealExists = TypedError({
+  type: 'exists',
+  message: 'seal {seal} already exists',
+  seal: null
+})
+
+exports.WatchExists = TypedError({
+  type: 'exists',
+  message: 'watch with address {address} and link {link} already exists',
+  address: null,
+  link: null
+})
+
+exports.InvalidSignature = TypedError({
+  type: 'invalidsignature',
+  message: 'signature {sig} is invalid: {reason}',
+  sig: null,
+  reason: 'verification failed'
+})
+
+exports.Author = TypedError({
+  type: 'author',
+  message: 'author {author} doesn\'t match signature {sig}',
+  sig: null,
+  author: null
+})
+
+exports.InvalidVersion = TypedError({
+  type: 'version',
+  message: 'object is incorrectly versioned: {error}',
+  error: null
+})
 </code></pre>
         </article>
     </section>

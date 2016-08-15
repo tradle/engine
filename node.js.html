@@ -28,11 +28,6 @@
         <article>
             <pre class="prettyprint source linenums"><code>'use strict'
 
-/**
- * tradle node module
- * @module node
- */
-
 const util = require('util')
 const EventEmitter = require('events').EventEmitter
 const path = require('path')
@@ -80,7 +75,11 @@ const types = tradle.types
 const noop = () => {}
 
 /**
+ * main API to tradle engine
+ *
  * @constructor
+ * @module node
+ * @typedef {node}
  * @param {Object} opts
  * @param {string} opts.dir               directory in which to store data
  * @param {string} opts.networkName       currently 'testnet' or 'bitcoin'
@@ -244,13 +243,12 @@ function Tradle (opts) {
 
 module.exports = Tradle
 util.inherits(Tradle, EventEmitter)
-const proto = Tradle.prototype
 
 /**
  * Initialize the node
  * @private
  */
-proto._init = function init () {
+Tradle.prototype._init = function init () {
   // add ourselves to our own addressBook
   this.addressBook.byLink(this.link, err => {
     if (this._destroyed) return
@@ -287,7 +285,7 @@ proto._init = function init () {
  * Log with a prefix
  * @private
  */
-proto._debug = function () {
+Tradle.prototype._debug = function () {
   utils.subdebug(debug, this.name || this.shortlink, arguments)
 }
 
@@ -295,7 +293,7 @@ proto._debug = function () {
  * Check if our identity has a blockchain seal
  * @param  {Function} cb
  */
-proto.identitySealStatus = function (cb) {
+Tradle.prototype.identitySealStatus = function (cb) {
   this.objectSealStatus(this.identityInfo, cb)
 }
 
@@ -304,7 +302,7 @@ proto.identitySealStatus = function (cb) {
  * @param  {Object}   opts [object/identifier]{@link types#someObjectInfo}
  * @param  {Function} cb
  */
-proto.objectSealStatus = function (opts, cb) {
+Tradle.prototype.objectSealStatus = function (opts, cb) {
   const self = this
   typeforce(types.someObjectInfo, opts)
 
@@ -345,7 +343,7 @@ proto.objectSealStatus = function (opts, cb) {
  * @param {Object}   [opts.link]    this identity's link
  * @param {Function} cb
  */
-proto.setIdentity = function (opts, cb) {
+Tradle.prototype.setIdentity = function (opts, cb) {
   const self = this
 
   typeforce({
@@ -365,7 +363,7 @@ proto.setIdentity = function (opts, cb) {
 //   })
 // }
 
-// proto._setIdentity = function (opts, cb) {
+// Tradle.prototype._setIdentity = function (opts, cb) {
   // const self = this
 
   this.keys = opts.keys.map(k => utils.importKey(k))
@@ -422,7 +420,7 @@ proto.setIdentity = function (opts, cb) {
  * @param {Object}   opts.identity  [see identity]{@link types#identity}
  * @param {Function} cb
  */
-proto.updateIdentity = function (opts, cb) {
+Tradle.prototype.updateIdentity = function (opts, cb) {
   const self = this
 
   typeforce({
@@ -472,7 +470,7 @@ proto.updateIdentity = function (opts, cb) {
  * @param  {Object}   opts.object   object to be signed
  * @param  {Function} cb
  */
-proto.sign = function sign (opts, cb) {
+Tradle.prototype.sign = function sign (opts, cb) {
   const self = this
   const author = opts.author || this._authorOpts
   const object = utils.clone(opts.object)
@@ -491,8 +489,8 @@ proto.sign = function sign (opts, cb) {
  * @param {Boolean} [overwrite=false] overwite existing mappings if such exist
  * @param {Function} cb
  */
-proto.addContactIdentity =
-proto.addContact = function addContact (identity, overwrite, cb) {
+Tradle.prototype.addContactIdentity =
+Tradle.prototype.addContact = function addContact (identity, overwrite, cb) {
   const self = this
 
   typeforce(types.identity, identity)
@@ -578,7 +576,7 @@ proto.addContact = function addContact (identity, overwrite, cb) {
  * @param {Object} wrapper.object   signed object
  * @param {string} wrapper.author   object author
  */
-proto.saveObject = function saveObject (wrapper, cb) {
+Tradle.prototype.saveObject = function saveObject (wrapper, cb) {
   const self = this
 
   typeforce({
@@ -698,7 +696,7 @@ proto.saveObject = function saveObject (wrapper, cb) {
  * @param  {Object}   opts.object  [unsigned object]{@link types#rawObject}
  * @param  {Function} cb   [description]
  */
-proto.createObject = function createObject (opts, cb) {
+Tradle.prototype.createObject = function createObject (opts, cb) {
   const self = this
   typeforce({
     object: types.rawObject
@@ -719,7 +717,7 @@ proto.createObject = function createObject (opts, cb) {
  * @param  {Object}   opts see sign and send methods
  * @param  {Function} cb
  */
-proto.signAndSend = function (opts, cb) {
+Tradle.prototype.signAndSend = function (opts, cb) {
   this.sign(opts, (err, result) => {
     if (err) return cb(err)
 
@@ -738,7 +736,7 @@ proto.signAndSend = function (opts, cb) {
  * @param  {Boolean}  [opts.seal]     if true, send the seal if it exists
  * @param  {Function} cb   [description]
  */
-proto.send = function send (opts, cb) {
+Tradle.prototype.send = function send (opts, cb) {
   const self = this
 
   typeforce({
@@ -874,7 +872,7 @@ proto.send = function send (opts, cb) {
  * Get 1:1 a conversation history stream. Delegate
  * @param  {Object} opts see [objects.conversation]{@link objects#conversation}
  */
-proto.conversation = function (opts) {
+Tradle.prototype.conversation = function (opts) {
   return this.objects.conversation(opts)
 }
 
@@ -883,7 +881,7 @@ proto.conversation = function (opts) {
  * @param  {string}   permalink other party's permalink
  * @param  {Function} cb        [description]
  */
-proto.forget = function forget (permalink, cb) {
+Tradle.prototype.forget = function forget (permalink, cb) {
   const self = this
 
   this._debug('forgetting correspondence with ' + permalink)
@@ -915,7 +913,7 @@ proto.forget = function forget (permalink, cb) {
  * @private
  * @param  {string} method
  */
-proto._exec = function _exec (method) {
+Tradle.prototype._exec = function _exec (method) {
   if (this.sealer) this.sealer[method]()
   this.sealwatch[method]()
   this.sender[method]()
@@ -926,7 +924,7 @@ proto._exec = function _exec (method) {
  * @param  {Object} [opts]
  * @param  {Number} [opts.timeout] auto-unpause after a timeout
  */
-proto.pause = function (opts) {
+Tradle.prototype.pause = function (opts) {
   if (this._paused) return
 
   opts = opts || {}
@@ -942,7 +940,7 @@ proto.pause = function (opts) {
 /**
  * Resume activities: sending, sealing, syncing
  */
-proto.resume = function () {
+Tradle.prototype.resume = function () {
   if (!this._paused) return
 
   if (!this._ready) return this.once('ready', this.resume)
@@ -957,7 +955,7 @@ proto.resume = function () {
  * @param  {Object}   from   [node identifier]{@link types#identifier}
  * @param  {Function} cb
  */
-proto.receive = function receive (msg, from, cb) {
+Tradle.prototype.receive = function receive (msg, from, cb) {
   const self = this
 
   typeforce(types.identifier, from)
@@ -1053,7 +1051,7 @@ proto.receive = function receive (msg, from, cb) {
  * @param  {Number}   [opts.amount]                      amount to spend on the transaction
  * @param  {Function} cb   [description]
  */
-proto.seal = function seal (opts, cb) {
+Tradle.prototype.seal = function seal (opts, cb) {
   const self = this
 
   typeforce({
@@ -1122,7 +1120,7 @@ proto.seal = function seal (opts, cb) {
  * @param  {Object}   opts.basePubKey [sealer's blockchain pubKey]{@link types#chainPubKey}
  * @param  {Function} cb
  */
-proto.watchNextVersion = function (opts, cb) {
+Tradle.prototype.watchNextVersion = function (opts, cb) {
   typeforce({
     link: typeforce.String,
     basePubKey: types.chainPubKey
@@ -1146,7 +1144,7 @@ proto.watchNextVersion = function (opts, cb) {
  * @param  {Object}   opts.basePubKey [sealer's blockchain pubKey]{@link types#chainPubKey}
  * @param  {Function} cb
  */
-proto.watchSeal = function (opts, cb) {
+Tradle.prototype.watchSeal = function (opts, cb) {
   typeforce({
     link: typeforce.String,
     basePubKey: types.chainPubKey
@@ -1170,7 +1168,7 @@ proto.watchSeal = function (opts, cb) {
  * @param  {string}   [opts.address]  address at which to expect seal
  * @param  {Function} cb
  */
-proto._watch = function (opts, cb) {
+Tradle.prototype._watch = function (opts, cb) {
   const self = this
 
   typeforce({
@@ -1219,7 +1217,7 @@ proto._watch = function (opts, cb) {
  * @param  {Object}   [recipientInfo]{@link types.identityInfo}
  * @param  {Function} cb
  */
-proto._send = function _send (msg, recipientInfo, cb) {
+Tradle.prototype._send = function _send (msg, recipientInfo, cb) {
   throw new Error('implement this method yourself')
 }
 
@@ -1228,7 +1226,7 @@ proto._send = function _send (msg, recipientInfo, cb) {
  * @private
  * @param  {Function} fn
  */
-proto._onready = function (fn) {
+Tradle.prototype._onready = function (fn) {
   if (this._ready) return fn()
 
   this.once('ready', fn)
@@ -1238,7 +1236,7 @@ proto._onready = function (fn) {
  * Terminate all internal activity and close database handles
  * @param  {Function} cb
  */
-proto.destroy = function destroy (cb) {
+Tradle.prototype.destroy = function destroy (cb) {
   cb = cb || noop
   if (this._destroyed) throw new Error('already destroying or destroyed')
   if (!this._ready) return this.once('ready', () => this.destroy())
@@ -1264,7 +1262,7 @@ proto.destroy = function destroy (cb) {
  * Trigger a sync with the blockchain
  * @param  {Function} cb
  */
-proto.sync = function (cb) {
+Tradle.prototype.sync = function (cb) {
   this.sealwatch.sync(cb)
 }
 </code></pre>
@@ -1277,13 +1275,13 @@ proto.sync = function (cb) {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-actions.html">actions</a></li><li><a href="module-addressBook.html">addressBook</a></li><li><a href="module-channel.html">channel</a></li><li><a href="module-constants.html">constants</a></li><li><a href="module-controls.html">controls</a></li><li><a href="module-defaults.html">defaults</a></li><li><a href="module-head.html">head</a></li><li><a href="module-manifest.html">manifest</a></li><li><a href="module-networks.html">networks</a></li><li><a href="module-node.html">node</a></li><li><a href="module-objectsDB.html">objectsDB</a></li><li><a href="module-protobufs.html">protobufs</a></li><li><a href="module-retrystream.html">retrystream</a></li><li><a href="module-sealer.html">sealer</a></li><li><a href="module-sealsDB.html">sealsDB</a></li><li><a href="module-sealwatch.html">sealwatch</a></li><li><a href="module-sender.html">sender</a></li><li><a href="module-status.html">status</a></li><li><a href="module-topics.html">topics</a></li><li><a href="module-typeforce.html">typeforce</a></li><li><a href="module-types.html">types</a></li><li><a href="module-utils.html">utils</a></li><li><a href="module-validator.html">validator</a></li><li><a href="module-watchesDB.html">watchesDB</a></li></ul><h3>Classes</h3><ul><li><a href="module-channel-Channel.html">Channel</a></li><li><a href="module-node-Tradle.html">Tradle</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-channel.html">channel</a></li><li><a href="module-constants.html">constants</a></li><li><a href="module-defaults.html">defaults</a></li><li><a href="module-errors.html">errors</a></li><li><a href="module-head.html">head</a></li><li><a href="module-manifest.html">manifest</a></li><li><a href="module-networks.html">networks</a></li><li><a href="module-protobufs.html">protobufs</a></li><li><a href="module-retrystream.html">retrystream</a></li><li><a href="module-sealer.html">sealer</a></li><li><a href="module-sealwatch.html">sealwatch</a></li><li><a href="module-status.html">status</a></li><li><a href="module-topics.html">topics</a></li><li><a href="module-typeforce.html">typeforce</a></li><li><a href="module-types.html">types</a></li><li><a href="module-utils.html">utils</a></li></ul><h3><a href="global.html">Global</a></h3>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sun Aug 14 2016 20:44:32 GMT-0400 (EDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Mon Aug 15 2016 00:13:00 GMT-0400 (EDT)
 </footer>
 
 <script> prettyPrint(); </script>
