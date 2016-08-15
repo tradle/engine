@@ -97,7 +97,7 @@ const utils = exports
   utils[method] = putils[method]
 })
 
-utils.find = function (arr /* filters */) {
+exports.find = function (arr /* filters */) {
   let match
   const filters = Array.prototype.slice.call(arguments, 1)
   arr.some(function (item) {
@@ -110,20 +110,20 @@ utils.find = function (arr /* filters */) {
   return match
 }
 
-utils.eqOpts = function (val) {
+exports.eqOpts = function (val) {
   return {
     lte: val,
     gte: val
   }
 }
 
-utils.hex = function hex (val) {
+exports.hex = function hex (val) {
   return val.toString('hex')
 }
 
-utils.noop = function noop () {}
+exports.noop = function noop () {}
 
-utils.mergeStreams = function mergeStreams (streams, compare) {
+exports.mergeStreams = function mergeStreams (streams, compare) {
   const arr = []
   const out = new Readable({ objectMode: true })
   out._read = utils.noop
@@ -143,11 +143,11 @@ utils.mergeStreams = function mergeStreams (streams, compare) {
   }
 }
 
-utils.notFoundErr = function notFoundErr () {
+exports.notFoundErr = function notFoundErr () {
   return new levelErrors.NotFoundError()
 }
 
-// utils.watchUID = function watchUID (opts) {
+// exports.watchUID = function watchUID (opts) {
 //   typeforce({
 //     address: typeforce.String,
 //     link: typeforce.String,
@@ -157,7 +157,7 @@ utils.notFoundErr = function notFoundErr () {
 //   return `watch:${opts.watchType}:${opts.address}:${opts.link}`
 // }
 
-// utils.addBody = function addBody (keeper, wrapper, link, cb) {
+// exports.addBody = function addBody (keeper, wrapper, link, cb) {
 //   keeper.get(link, function (err, body) {
 //     if (err) return cb(err)
 
@@ -166,7 +166,7 @@ utils.notFoundErr = function notFoundErr () {
 //   })
 // }
 
-// utils.getSealAddresses = function (seal) {
+// exports.getSealAddresses = function (seal) {
 //   typeforce({
 //     sealAddress: typeforce.String,
 //     sealPrevAddress: typeforce.maybe(typeforce.String)
@@ -201,7 +201,7 @@ utils.notFoundErr = function notFoundErr () {
 //   return `seal:${opts.networkName}:${sealAddress}:${sealPrevAddress}:${opts.link}`
 // }
 
-utils.uid = function (opts) {
+exports.uid = function (opts) {
   const links = utils.getLinks(opts)
   return links.permalink + ':' + links.link
 
@@ -211,14 +211,14 @@ utils.uid = function (opts) {
   // return link + ':' + permalink
 }
 
-// utils.prevUID = function (opts) {
+// exports.prevUID = function (opts) {
 //   const links = utils.getLinks(opts)
 //   if (!links.prevLink) throw new Error('missing prevLink')
 
 //   return links.permalink + ':' + links.prevLink
 // }
 
-// utils.parseUID = function (uid) {
+// exports.parseUID = function (uid) {
 //   const parts = uid.split(':')
 //   return {
 //     [PERMALINK]: parts[0],
@@ -226,7 +226,7 @@ utils.uid = function (opts) {
 //   }
 // }
 
-// utils.getMsgID = function getMsgID (opts) {
+// exports.getMsgID = function getMsgID (opts) {
 //   typeforce({
 //     link: types.bufferOrString,
 //     sender: typeforce.bufferOrString,
@@ -241,7 +241,7 @@ utils.uid = function (opts) {
 //   ].join(':')
 // }
 
-// utils.augment = function augment (wrapper, keeper, cb) {
+// exports.augment = function augment (wrapper, keeper, cb) {
 //   keeper.get(utils.hex(wrapper.link), function (err, obj) {
 //     if (err) return cb(err)
 
@@ -250,43 +250,43 @@ utils.uid = function (opts) {
 //   })
 // }
 
-utils.sigKey = keys => utils.find(keys, isSigningKey, isPrivateKey)
+exports.sigKey = keys => utils.find(keys, isSigningKey, isPrivateKey)
 
-// utils.sigKeys = keys => keys.filter(isSigningKey)
+// exports.sigKeys = keys => keys.filter(isSigningKey)
 
-utils.sigPubKey = function (identity) {
+exports.sigPubKey = function (identity) {
   const key = utils.find(identity.pubkeys, isSigningKey)
   return key &amp;&amp; utils.toECKeyObj(key)
 }
 
-utils.identityVersioningKey = keys => utils.find(keys, isIdentityVersioningKey, isPrivateKey)
+exports.identityVersioningKey = keys => utils.find(keys, isIdentityVersioningKey, isPrivateKey)
 
-utils.identityVersioningPubKey = function identityVersioningPubKey (identity) {
+exports.identityVersioningPubKey = function identityVersioningPubKey (identity) {
   const key = utils.find(identity.pubkeys, isIdentityVersioningKey)
   return key &amp;&amp; utils.toECKeyObj(key)
 }
 
-// utils.sigPubKeys = identity => identity.pubkeys.filter(isSigningKey)
+// exports.sigPubKeys = identity => identity.pubkeys.filter(isSigningKey)
 
-utils.chainKey = keys => utils.find(keys, isChainKey, isPrivateKey)
+exports.chainKey = keys => utils.find(keys, isChainKey, isPrivateKey)
 
-// utils.chainKeys = keys => keys.filter(isChainKey)
+// exports.chainKeys = keys => keys.filter(isChainKey)
 
-utils.chainPubKey = function chainPubKey (identity) {
+exports.chainPubKey = function chainPubKey (identity) {
   const key = utils.find(identity.pubkeys, isChainKey)
   return key &amp;&amp; utils.toECKeyObj(key)
 }
 
-// utils.chainPubKeys = identity => identity.pubkeys.filter(isChainKey)
+// exports.chainPubKeys = identity => identity.pubkeys.filter(isChainKey)
 
-utils.toECKeyObj = function toECKeyObj (key) {
+exports.toECKeyObj = function toECKeyObj (key) {
   return {
     curve: key.type === 'bitcoin' ? 'secp256k1' : key.curve,
     pub: new Buffer(key.pub, 'hex')
   }
 }
 
-utils.bindFunctions = function bindFunctions (obj) {
+exports.bindFunctions = function bindFunctions (obj) {
   for (let p in obj) {
     const val = obj[p]
     if (typeof val === 'function') {
@@ -297,7 +297,7 @@ utils.bindFunctions = function bindFunctions (obj) {
   return obj
 }
 
-utils.findPubKey = function (identity, props) {
+exports.findPubKey = function (identity, props) {
   typeforce(types.identity, identity)
   typeforce({
     pub: types.bufferOrString
@@ -320,32 +320,37 @@ utils.findPubKey = function (identity, props) {
   })
 }
 
-utils.hasPubKey = function (identity, props) {
+exports.hasPubKey = function (identity, props) {
   return !!utils.findPubKey(identity, props)
 }
 
 /**
  * shallow extend an object
+ * @static
+ * @param {Object} obj
  * @returns {Object} passed in object
  */
-utils.extend = extend
+exports.extend = extend
 
 /**
  * shallow clone an object
+ * @static
+ * @param {Object} obj
  * @returns {Object} a new object with copied-over props
  */
-utils.clone = clone
+exports.clone = clone
 
 /**
  * calculate an object's link
+ * @static
  * @param  {Object} object
  * @return {String}
  */
-utils.hexLink = function (object) {
+exports.hexLink = function (object) {
   return utils.hex(protocol.link(object))
 }
 
-utils.linkToBuf = function (link) {
+exports.linkToBuf = function (link) {
   return Buffer.isBuffer(link) ? link : new Buffer(link, 'hex')
 }
 
@@ -355,37 +360,38 @@ utils.linkToBuf = function (link) {
 //       new Buffer(JSON.stringify(obj), enc)
 // }
 
-utils.stringify = stringify
+exports.stringify = stringify
 
-utils.filterStream = function (test) {
+exports.filterStream = function (test) {
   return through.obj(function (data, enc, cb) {
     cb(null, test(data) ? data : null)
   })
 }
 
-// utils.flatten = function (arr) {
+// exports.flatten = function (arr) {
 //   // flatten array of arrays
 //   return arr.reduce((flat, nextArr) => {
 //     return flat.concat(nextArr)
 //   }, [])
 // }
 
-// utils.stringToObject = str => rebuf(JSON.parse(str))
+// exports.stringToObject = str => rebuf(JSON.parse(str))
 
-utils.opToBatch = function (op) {
+exports.opToBatch = function (op) {
   return op.batch ? op.batch : [op.value]
 }
 
 /**
  * sha256
+ * @static
  * @param  {Buffer|String} data
  * @return {Buffer}
  */
-utils.sha256 = function (data) {
+exports.sha256 = function (data) {
   return crypto.createHash('sha256').update(data).digest()
 }
 
-utils.pubKeyString = function (key) {
+exports.pubKeyString = function (key) {
   if (typeof key === 'string') return key
 
   typeforce(typeforce.Buffer, key.pub)
@@ -393,7 +399,7 @@ utils.pubKeyString = function (key) {
   return key.pub.toString('hex')
 }
 
-utils.pubKeyToAddress = function pubKeyToAddress (pubKey, networkName) {
+exports.pubKeyToAddress = function pubKeyToAddress (pubKey, networkName) {
   typeforce(typeforce.Buffer, pubKey.pub)
 
   const network = networks[networkName]
@@ -410,7 +416,7 @@ utils.pubKeyToAddress = function pubKeyToAddress (pubKey, networkName) {
   return bs58check.encode(payload)
 }
 
-utils.privToWIF = function (priv, networkName, compressed) {
+exports.privToWIF = function (priv, networkName, compressed) {
   typeforce(typeforce.Buffer, priv)
   typeforce(typeforce.String, networkName)
 
@@ -430,13 +436,13 @@ utils.privToWIF = function (priv, networkName, compressed) {
   return bs58check.encode(buffer)
 }
 
-utils.objectInfo = function objectInfo (wrapper) {
+exports.objectInfo = function objectInfo (wrapper) {
   const info = utils.getLinks(wrapper)
   info.object = wrapper.object
   return info
 }
 
-utils.getLinks = function getLinks (wrapper) {
+exports.getLinks = function getLinks (wrapper) {
   typeforce({
     object: typeforce.maybe(types.signedObject),
     permalink: typeforce.maybe(typeforce.String),
@@ -461,11 +467,11 @@ utils.getLinks = function getLinks (wrapper) {
   return links
 }
 
-utils.addLinks = function addLinks (wrapper) {
+exports.addLinks = function addLinks (wrapper) {
   return utils.extend(wrapper, utils.getLinks(wrapper))
 }
 
-utils.maybeAddPrev = function maybeAddPrev (node, wrapper, cb) {
+exports.maybeAddPrev = function maybeAddPrev (node, wrapper, cb) {
   if (wrapper.prev) return cb()
 
   const prevLink = wrapper.object[PREVLINK]
@@ -480,20 +486,20 @@ utils.maybeAddPrev = function maybeAddPrev (node, wrapper, cb) {
   })
 }
 
-// utils.xor = function (a, b) {
+// exports.xor = function (a, b) {
 //   if (typeof a !== 'number') a = a ? 1 : 0
 //   if (typeof b !== 'number') b = b ? 1 : 0
 
 //   return a ^ b
 // }
 
-// utils.addAuthors = function addAuthors (wrappers, addressBook, cb) {
+// exports.addAuthors = function addAuthors (wrappers, addressBook, cb) {
 //   async.each(wrappers, function iterator (wrapper, done) {
 //     utils.addAuthor(wrapper, addressBook, done)
 //   }, cb)
 // }
 
-utils.addAuthor = function addAuthor (node, wrapper, cb) {
+exports.addAuthor = function addAuthor (node, wrapper, cb) {
   utils.lookupAuthor(node, wrapper, function (err, objectInfo) {
     if (err) return cb(err)
 
@@ -502,7 +508,7 @@ utils.addAuthor = function addAuthor (node, wrapper, cb) {
   })
 }
 
-utils.lookupAuthor = function lookupAuthor (node, wrapper, cb) {
+exports.lookupAuthor = function lookupAuthor (node, wrapper, cb) {
   const author = wrapper.author
   if (author &amp;&amp; typeof author === 'object') {
     if (author.object) {
@@ -518,11 +524,11 @@ utils.lookupAuthor = function lookupAuthor (node, wrapper, cb) {
   node.addressBook.byPubKey(utils.pubKeyString(sigPubKey), cb)
 }
 
-utils.shortlink = function (link) {
+exports.shortlink = function (link) {
   return link.slice(0, 6)
 }
 
-utils.subdebugger = function (debug, name) {
+exports.subdebugger = function (debug, name) {
   // accept `node` or string
   name = name &amp;&amp; name.name || name
   typeforce(typeforce.String, name)
@@ -531,13 +537,13 @@ utils.subdebugger = function (debug, name) {
   }
 }
 
-utils.subdebug = function (debug, name, args) {
+exports.subdebug = function (debug, name, args) {
   args = [].slice.call(args)
   args.unshift(name)
   return debug.apply(null, args)
 }
 
-utils.loadBG = function loadBG (node, wrapper, cb) {
+exports.loadBG = function loadBG (node, wrapper, cb) {
   utils.addLinks(wrapper)
 
   const tasks = [
@@ -548,7 +554,7 @@ utils.loadBG = function loadBG (node, wrapper, cb) {
   async.parallel(tasks, cb)
 }
 
-// utils.identityIndices = function identityIndices (identityInfo) {
+// exports.identityIndices = function identityIndices (identityInfo) {
 //   typeforce(types.identityInfo, identityInfo)
 //   const keys = identityInfo.object.pubkeys
 //   return keys.map(key => key.pub)
@@ -556,12 +562,12 @@ utils.loadBG = function loadBG (node, wrapper, cb) {
 //     .concat(identityInfo.link)
 // }
 
-utils.claimedSigPubKey = function (object) {
+exports.claimedSigPubKey = function (object) {
   const sig = object[SIG] || object
   return protocol.utils.parseSig(sig).pubKey
 }
 
-// utils.verifyAuthor = function verifyAuthor (wrapper) {
+// exports.verifyAuthor = function verifyAuthor (wrapper) {
 //   const signingKey = utils.getSigPubKey(wrapper.object)
 //   if (!signingKey) throw new Error('bad signature')
 
@@ -580,7 +586,7 @@ utils.claimedSigPubKey = function (object) {
 //   if (!hasKey) throw new Error('wrong author')
 // }
 
-// utils.execAsync = function (fn, cb) {
+// exports.execAsync = function (fn, cb) {
 //   try {
 //     var result = fn()
 //   } catch (err) {
@@ -590,7 +596,7 @@ utils.claimedSigPubKey = function (object) {
 //   cb(null, result)
 // }
 
-utils.saveToKeeper = function saveToKeeper (keeper, wrappers, cb) {
+exports.saveToKeeper = function saveToKeeper (keeper, wrappers, cb) {
   const batch = wrappers.map(w => {
     return {
       type: 'put',
@@ -602,7 +608,7 @@ utils.saveToKeeper = function saveToKeeper (keeper, wrappers, cb) {
   keeper.batch(batch, cb)
 }
 
-utils.mapToBatch = function (map, op) {
+exports.mapToBatch = function (map, op) {
   op = op || 'put'
   return Object.keys(map).map(key => {
     return {
@@ -613,16 +619,16 @@ utils.mapToBatch = function (map, op) {
   })
 }
 
-utils.values = function (obj) {
+exports.values = function (obj) {
   return Object.keys(obj).map(key => obj[key])
 }
 
-utils.now = function () {
+exports.now = function () {
   // later, we might want some high-res timestamp
   return Date.now()
 }
 
-utils.sealAddress = function sealAddress (basePubKey, link, networkName) {
+exports.sealAddress = function sealAddress (basePubKey, link, networkName) {
   const pubKey = protocol.sealPubKey({
     link: utils.linkToBuf(link),
     basePubKey: basePubKey
@@ -631,7 +637,7 @@ utils.sealAddress = function sealAddress (basePubKey, link, networkName) {
   return utils.pubKeyToAddress(pubKey, networkName)
 }
 
-utils.sealPrevAddress = function sealPrevAddress (basePubKey, link, networkName) {
+exports.sealPrevAddress = function sealPrevAddress (basePubKey, link, networkName) {
   const pubKey = protocol.sealPrevPubKey({
     prevLink: utils.linkToBuf(link),
     basePubKey: basePubKey
@@ -640,12 +646,12 @@ utils.sealPrevAddress = function sealPrevAddress (basePubKey, link, networkName)
   return utils.pubKeyToAddress(pubKey, networkName)
 }
 
-utils.defaultValueEncoding = {
+exports.defaultValueEncoding = {
   encode: val => JSON.stringify(hydra.dehydrate(val)),
   decode: str => hydra.hydrate(JSON.parse(str))
 }
 
-utils.levelup = function (path, opts) {
+exports.levelup = function (path, opts) {
   opts = opts || {}
   if (!opts.valueEncoding) {
     opts.valueEncoding = utils.defaultValueEncoding
@@ -654,12 +660,12 @@ utils.levelup = function (path, opts) {
   return levelup(path, opts)
 }
 
-// utils.alphabetical = function alphabetical (a, b) {
+// exports.alphabetical = function alphabetical (a, b) {
 //   return a &lt; b ? -1 :
 //     a > b ? 1 : 0
 // }
 
-utils.parseTx = function parseTx (txInfo, networkName) {
+exports.parseTx = function parseTx (txInfo, networkName) {
   // typeforce('String', txInfo.txHex)
   if (!(networkName in bitcoin.networks)) {
     throw new Error('invalid networkName')
@@ -677,7 +683,7 @@ utils.parseTx = function parseTx (txInfo, networkName) {
   })
 }
 
-utils.parseTxSender = function parseTxSender (tx, networkName) {
+exports.parseTxSender = function parseTxSender (tx, networkName) {
   const pubkeys = []
   const addrs = []
   tx.ins.map(function (input) {
@@ -701,14 +707,14 @@ utils.parseTxSender = function parseTxSender (tx, networkName) {
 //     .concat(utils.getOutputAddresses(tx, networkName))
 // }
 
-utils.getOutputAddresses = function getOutputAddresses (tx, networkName) {
+exports.getOutputAddresses = function getOutputAddresses (tx, networkName) {
   return tx.outs.map(function (output) {
     return utils.getAddressFromOutput(output, networkName)
   })
   .filter(truthy)
 }
 
-utils.getAddressFromOutput = function getAddressFromOutput (output, networkName) {
+exports.getAddressFromOutput = function getAddressFromOutput (output, networkName) {
   if (bitcoin.scripts.classifyOutput(output.script) === 'pubkeyhash') {
     return bitcoin.Address
       .fromOutputScript(output.script, bitcoin.networks[networkName])
@@ -718,9 +724,10 @@ utils.getAddressFromOutput = function getAddressFromOutput (output, networkName)
 
 /**
  * monkey-patch `obj` to ensure async `methods` of `obj` never overlap
+ * @static
  * @returns obj
  */
-utils.lockify = function lockify (obj, methods) {
+exports.lockify = function lockify (obj, methods) {
   const lock = mutexify()
   methods.forEach(method => {
     const orig = obj[method]
@@ -749,7 +756,7 @@ utils.lockify = function lockify (obj, methods) {
  * @param {boolean} [logArgs=false]
  * @returns obj
  */
-utils.logify = function logify (obj, method, logArgs) {
+exports.logify = function logify (obj, method, logArgs) {
   const orig = obj[method]
   obj[method] = function logifyProxy () {
     const result = orig.apply(obj, arguments)
@@ -761,8 +768,9 @@ utils.logify = function logify (obj, method, logArgs) {
 
 /**
  * print the current stack
+ * @static
  */
-utils.printStack = function () {
+exports.printStack = function () {
   try {
     throw new Error('')
   } catch (err) {
@@ -772,10 +780,11 @@ utils.printStack = function () {
 
 /**
  * Generate a default set of keys
+ * @static
  * @param {string} [networkName=DEFAULT_NETWORK]
  * @returns {Array}
  */
-utils.defaultKeySet = function defaultKeySet (networkName) {
+exports.defaultKeySet = function defaultKeySet (networkName) {
   networkName = networkName || DEFAULT_NETWORK
   const descriptors = [
     { type: 'bitcoin', purpose: 'payment', networkName: networkName },
@@ -791,10 +800,11 @@ utils.defaultKeySet = function defaultKeySet (networkName) {
 
 /**
  * Generate a set of keys
+ * @static
  * @param {Array} spec for keys to generate
  * @returns {Array}
  */
-utils.generateKeySet = function generateKeySet (keys) {
+exports.generateKeySet = function generateKeySet (keys) {
   keys.forEach(key => typeforce({
     type: typeforce.String,
     purpose: typeforce.String
@@ -812,20 +822,22 @@ utils.generateKeySet = function generateKeySet (keys) {
 
 /**
  * Generate a key
+ * @static
  * @param {Object}   spec   spec for key
  * @param {Function} [cb]
  */
-utils.genKey = function (spec, cb) {
+exports.genKey = function (spec, cb) {
   const impl = utils.getKeyImplementation(spec)
   return cb ? impl.gen(spec, cb) : impl.genSync(spec)
 }
 
 /**
  * Get a key implementation by key a spec
+ * @static
  * @param  {Object} spec
  * @return {nkeyModule}
  */
-utils.getKeyImplementation = function (spec) {
+exports.getKeyImplementation = function (spec) {
   const type = spec.type
   switch (type) {
   case 'bitcoin':
@@ -841,10 +853,11 @@ utils.getKeyImplementation = function (spec) {
 
 /**
  * import a key json to an nkey object
+ * @static
  * @param  {Object} key
  * @return {nkey}
  */
-utils.importKey = function (key) {
+exports.importKey = function (key) {
   if (typeof key.toJSON === 'function') return key
 
   return utils.getKeyImplementation(key).fromJSON(key)
@@ -852,12 +865,13 @@ utils.importKey = function (key) {
 
 /**
  * Generate a new set of keys and corresponding identity object
+ * @static
  * @param  {Object}   opts
  * @param  {string}   [opts.networkName]
  * @param  {Array}    [opts.keys]  spec for which keys to generate
  * @param  {Function} cb
  */
-utils.newIdentity = function newIdentity (opts, cb) {
+exports.newIdentity = function newIdentity (opts, cb) {
   typeforce({
     networkName: typeforce.maybe(typeforce.String),
     keys: typeforce.maybe(typeforce.Array)
@@ -898,7 +912,7 @@ utils.newIdentity = function newIdentity (opts, cb) {
   })
 }
 
-utils.signee = function signee (opts) {
+exports.signee = function signee (opts) {
   typeforce({
     permalink: typeforce.String,
     link: typeforce.String
@@ -907,7 +921,7 @@ utils.signee = function signee (opts) {
   return opts.permalink + ':' + opts.link
 }
 
-utils.firstInStream = function firstInStream (stream, cb) {
+exports.firstInStream = function firstInStream (stream, cb) {
   cb = once(cb)
   combine.obj(
     stream,
@@ -920,11 +934,12 @@ utils.firstInStream = function firstInStream (stream, cb) {
 
 /**
  * promisify a node and its components, based on manifest.js
+ * @static
  * @param  {node} node
  * @param  {Promise} [promiseImpl=global.Promise] promise implementation
  * @return {node}
  */
-utils.promisifyNode = function promisifyNode (node, promiseImpl) {
+exports.promisifyNode = function promisifyNode (node, promiseImpl) {
   if (node._promisified) return node
 
   const nodeManifest = manifest.node
@@ -949,12 +964,13 @@ utils.promisifyNode = function promisifyNode (node, promiseImpl) {
 
 /**
  * promisify a method based on manifest.js
+ * @static
  * @param  {Object}   obj
  * @param  {string}   method
  * @param  {Promise}  [promiseImpl=global.Promise] promise implementation
  * @return {node}
  */
-utils.promisifyMethod = function (obj, method, promiseImpl) {
+exports.promisifyMethod = function (obj, method, promiseImpl) {
   const orig = obj[method]
   if (orig._promisified) return orig
 
@@ -979,7 +995,7 @@ utils.promisifyMethod = function (obj, method, promiseImpl) {
   return promisified
 }
 
-utils.timeout = function timeout (fn, millis, unref) {
+exports.timeout = function timeout (fn, millis, unref) {
   const t = setTimeout(fn, millis)
   if (unref &amp;&amp; t.unref) t.unref()
   return t
@@ -987,10 +1003,11 @@ utils.timeout = function timeout (fn, millis, unref) {
 
 /**
  * serialize a message object to a Buffer
+ * @static
  * @param  {Object} msg
  * @return {Buffer}
  */
-utils.serializeMessage = function (msg) {
+exports.serializeMessage = function (msg) {
   var copy = {}
   var other = {}
   for (var p in msg) {
@@ -1032,10 +1049,11 @@ utils.serializeMessage = function (msg) {
 
 /**
  * unserialize a message Buffer to a message object
+ * @static
  * @param  {Buffer} msg
  * @return {Object}
  */
-utils.unserializeMessage = function (msg) {
+exports.unserializeMessage = function (msg) {
   msg = schema.Message.decode(msg)
   utils.cleanupDecodedProtobuf(msg)
 
@@ -1080,10 +1098,11 @@ var SERIALIZABLE_IDENTITY_PROPS = [
 
 /**
  * compact serialization of an identity object
+ * @static
  * @param  {identity} identity
  * @return {Buffer}
  */
-utils.serializeIdentity = function (identity) {
+exports.serializeIdentity = function (identity) {
   for (var p in identity) {
     if (SERIALIZABLE_IDENTITY_PROPS.indexOf(p) === -1) {
       throw new Error('identity not serializable')
@@ -1103,11 +1122,12 @@ utils.serializeIdentity = function (identity) {
 
 /**
  * unserialize a serialized identity
+ * @static
  * @param  {Buffer} encoded
  * @return {identity}
  */
-utils.deserializeIdentity =
-utils.unserializeIdentity = function (encoded) {
+exports.deserializeIdentity =
+exports.unserializeIdentity = function (encoded) {
   const identity = schema.Identity.decode(encoded)
   utils.cleanupDecodedProtobuf(identity)
   identity[SIG] = identity[SIG].toString('base64')
@@ -1119,7 +1139,7 @@ utils.unserializeIdentity = function (encoded) {
   return identity
 }
 
-utils.toCompactPubKey = function (key) {
+exports.toCompactPubKey = function (key) {
   const compact = {
     purpose: schema.KeyPurpose[key.purpose],
     type: schema.KeyType[key.type],
@@ -1143,12 +1163,12 @@ utils.toCompactPubKey = function (key) {
   return compact
 }
 
-utils.serializePubKey = function (key) {
+exports.serializePubKey = function (key) {
   return schema.PubKey.encode(utils.toCompactPubKey(key))
 }
 
-utils.deserializePubKey =
-utils.unserializePubKey = function (serialized) {
+exports.deserializePubKey =
+exports.unserializePubKey = function (serialized) {
   const compact = Buffer.isBuffer(serialized) ? schema.PubKey.decode(serialized) : serialized
   utils.cleanupDecodedProtobuf(compact)
 
@@ -1189,7 +1209,7 @@ utils.unserializePubKey = function (serialized) {
   return key
 }
 
-utils.cleanupDecodedProtobuf = function (decoded) {
+exports.cleanupDecodedProtobuf = function (decoded) {
   for (var p in decoded) {
     const val = decoded[p]
     if (val == null || (Buffer.isBuffer(val) &amp;&amp; val.length === 0)) {
@@ -1200,7 +1220,7 @@ utils.cleanupDecodedProtobuf = function (decoded) {
   return decoded
 }
 
-utils.keyByValue = function (obj, val) {
+exports.keyByValue = function (obj, val) {
   for (var p in obj) {
     if (obj[p] === val) return p
   }
@@ -1274,7 +1294,7 @@ function isIdentityVersioningKey (key) {
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Mon Aug 15 2016 00:13:00 GMT-0400 (EDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Mon Aug 15 2016 00:24:34 GMT-0400 (EDT)
 </footer>
 
 <script> prettyPrint(); </script>
