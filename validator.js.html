@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: validator.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: validator.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>'use strict'
+
+/**
+ * message / object validation
+ * @module validator
+ */
+
+const typeforce = require('./typeforce')
+const async = require('async')
+const protocol = require('@tradle/protocol')
+const constants = require('./constants')
+const utils = require('./utils')
+const types = require('./types')
+const errors = require('./errors')
+const MESSAGE_TYPE = require('./constants').TYPES.MESSAGE
+const PERMALINK = constants.PERMALINK
+const PREVLINK = constants.PREVLINK
+const SIG = constants.SIG
+const TYPE = constants.TYPE
+
+module.exports = function validator (node) {
+  return {
+    validate,
+    checkExists,
+    checkPrev,
+    checkAuthentic
+  }
+
+  function validate (wrapper, opts, cb) {
+    if (typeof opts === 'function') {
+      cb = opts
+      opts = {}
+    }
+
+    utils.addLinks(wrapper)
+    const tasks = [
+      done => utils.loadBG(node, wrapper, done),
+    ]
+
+    if (opts.unique) {
+      tasks.unshift(done => checkExists(wrapper, done))
+    }
+
+    async.series(tasks, function (err) {
+      if (err) return cb(err)
+
+      try {
+        checkPrev(wrapper)
+        checkAuthentic(wrapper)
+      } catch (err) {
+        return cb(err)
+      }
+
+      cb()
+    })
+  }
+
+  // function validate (wrapper, cb) {
+  //   utils.addLinks(wrapper)
+
+  //   const isMsg = wrapper.object[TYPE] === MESSAGE_TYPE
+  //   node.objects.get(wrapper.link, function (err) {
+  //     if (!err &amp;&amp; isMsg) {
+  //       return cb(new errors.ObjectExists({ link: wrapper.link }))
+  //     }
+
+  //     // utils.extend(node, wrapper, opts)
+  //     utils.loadBG(node, wrapper, function (err) {
+  //       if (err) return cb(err)
+
+  //       const object = wrapper.object
+  //       const sig = object[SIG]
+  //       const link = wrapper.link
+  //       let signingKey
+  //       try {
+  //         signingKey = utils.getSigPubKey(object)
+  //       } catch (err) {
+  //       }
+
+  //       if (!signingKey) return cb(new errors.InvalidSignature({ sig }))
+
+  //       if (!utils.hasPubKey(wrapper.author.object, signingKey)) {
+  //         return cb(new errors.Author({
+  //           author: wrapper.author.link,
+  //           sig: sig
+  //         }))
+  //       }
+
+  //       if (isMsg) {
+  //         try {
+  //           // TODO: msg.prev
+  //           protocol.validateMessage({ object })
+  //         } catch (err) {
+  //           return cb(err)
+  //         }
+  //       }
+
+  //       cb()
+  //     })
+  //   })
+  // }
+
+  function checkExists (wrapper, cb) {
+    node.objects.get({ link: wrapper.link, body: false }, function (err) {
+      cb(err ? null : new errors.ObjectExists({ link: wrapper.link }))
+    })
+  }
+
+  function checkPrev (wrapper) {
+    const object = wrapper.object
+    const prev = wrapper.prev
+    // we may not have the previous version in our db
+    if (!object[PREVLINK] || !prev) return
+
+    if (prev.author !== wrapper.author.permalink) {
+      throw new errors.InvalidVersion({
+        error: 'prev version has a different author'
+      })
+    }
+
+    try {
+      protocol.validateVersioning({
+        object,
+        prev: prev.object,
+        orig: object[PERMALINK]
+      })
+    } catch (err) {
+      throw new errors.InvalidVersion({
+        error: err.message
+      })
+    }
+
+    if (prev[PERMALINK] &amp;&amp; prev[PERMALINK] !== object[PERMALINK]) {
+      throw new errors.InvalidVersion({
+        error: `prev version has a different ${PERMALINK}`
+      })
+    }
+  }
+
+  function checkAuthentic (wrapper) {
+    const object = wrapper.object
+    const sig = object[SIG]
+    const link = wrapper.link
+    let signingKey
+    try {
+      signingKey = protocol.sigPubKey({ object })
+    } catch (err) {
+    }
+
+    if (!signingKey) throw new errors.InvalidSignature({ sig })
+
+    const pubKey = utils.findPubKey(wrapper.author.object, signingKey)
+    if (!pubKey) {
+      throw new errors.Author({
+        author: wrapper.author.link,
+        sig: sig
+      })
+    }
+
+    const expectedPurpose = object[TYPE] === constants.TYPES.IDENTITY ? 'update' : 'sign'
+    if (pubKey.purpose !== expectedPurpose) {
+      throw new errors.InvalidSignature({ sig, reason: 'wrong signing key was used' })
+    }
+  }
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-actions.html">actions</a></li><li><a href="module-addressBook.html">addressBook</a></li><li><a href="module-channel.html">channel</a></li><li><a href="module-constants.html">constants</a></li><li><a href="module-controls.html">controls</a></li><li><a href="module-defaults.html">defaults</a></li><li><a href="module-head.html">head</a></li><li><a href="module-manifest.html">manifest</a></li><li><a href="module-networks.html">networks</a></li><li><a href="module-node.html">node</a></li><li><a href="module-objectsDB.html">objectsDB</a></li><li><a href="module-protobufs.html">protobufs</a></li><li><a href="module-retrystream.html">retrystream</a></li><li><a href="module-sealer.html">sealer</a></li><li><a href="module-sealsDB.html">sealsDB</a></li><li><a href="module-sealwatch.html">sealwatch</a></li><li><a href="module-sender.html">sender</a></li><li><a href="module-status.html">status</a></li><li><a href="module-topics.html">topics</a></li><li><a href="module-typeforce.html">typeforce</a></li><li><a href="module-types.html">types</a></li><li><a href="module-utils.html">utils</a></li><li><a href="module-validator.html">validator</a></li><li><a href="module-watchesDB.html">watchesDB</a></li></ul><h3>Classes</h3><ul><li><a href="module-channel-Channel.html">Channel</a></li><li><a href="module-node-Tradle.html">Tradle</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sun Aug 14 2016 20:44:32 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

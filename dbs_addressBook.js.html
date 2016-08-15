@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: dbs/addressBook.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: dbs/addressBook.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+'use strict'
+
+/**
+ * address book database, bootstrapped from log
+ * @module addressBook
+ */
+
+const EventEmitter = require('events').EventEmitter
+const async = require('async')
+const pump = require('pump')
+const typeforce = require('../typeforce')
+const through = require('through2')
+const subdown = require('subleveldown')
+const debug = require('debug')('tradle:addressBook')
+const indexer = require('feed-indexer')
+const protocol = require('@tradle/protocol')
+// const LiveStream = require('level-live-stream')
+const constants = require('../constants')
+const PERMALINK = constants.PERMALINK
+const LINK = constants.LINK
+const PREVLINK = constants.PREVLINK
+const utils = require('../utils')
+const topics = require('../topics')
+const types = require('../types')
+const IDENTITY_TYPE = constants.TYPES.IDENTITY
+const LINK_PREFIX = 'c!'
+
+module.exports = function createAddressBook (opts) {
+  typeforce({
+    changes: types.changes,
+    db: types.db,
+    keeper: types.keeper,
+    // identityInfo: types.identityInfo,
+    name: typeforce.maybe(typeforce.String)
+  }, opts)
+
+  let closed
+  opts.db.once('closing', () => closed = true)
+
+  let me
+  let myDebug
+  if (opts.identityInfo) setIdentityInfo(opts.identityInfo)
+
+  const keeper = opts.keeper
+  const relevantTopics = [
+    topics.addcontact
+  ]
+
+  const primaryKey = 'permalink'
+  const indexedDB = indexer({
+    feed: opts.changes,
+    db: opts.db,
+    primaryKey: primaryKey,
+    filter: function (val) {
+      return relevantTopics.indexOf(val.topic) !== -1
+    },
+    reduce: function (state, change, cb) {
+      if (closed) return
+
+      keeper.get(change.value.link, function (err, body) {
+        if (err) return cb(err)
+
+        const newState = indexedDB.merge(state, change)
+        delete newState.topic
+        newState.object = body
+        cb(null, newState)
+      })
+    }
+  })
+
+  const emitter = new EventEmitter()
+  indexedDB.on('change', function (change, state) {
+    myDebug('added contact: ' + utils.uid(state))
+    emitter.emit('contact', state)
+  })
+
+  // maybe these props should
+  const simple = ['link', 'permalink'] //, 'prevLink']
+  const complex = ['fingerprint', 'pub']
+  const indexedProps = simple.concat(complex)
+  const indexes = {}
+
+  simple.forEach(prop => indexes[prop] = indexedDB.by(prop))
+  complex.forEach(prop => {
+    indexes[prop] = indexedDB.by(prop, function reducer (state, cb) {
+      return state.object.pubkeys.map(key => {
+        myDebug('indexing by ' + prop, key[prop])
+        return key[prop] + indexedDB.separator + state[primaryKey]
+      })
+    })
+  })
+
+  const indexMap = {}
+  indexes.pub.on('change', function (state, iMap) {
+    utils.extend(indexMap, iMap)
+  })
+
+  indexes.link.on('change', function (state, val) {
+    indexMap[val] = state.permalink
+  })
+
+  /**
+   * lookup an identity by a fingerprint, pubKey, link or permalink
+   * @param  {String}   propVal
+   * @param  {Function} cb
+   */
+  function lookupIdentity (propVal, cb) {
+    if (!propVal) throw new Error('expected "propVal"')
+
+    if (typeof propVal === 'object') {
+      if (propVal.permalink) return findOneByProp('permalink', propVal.permalink, cb)
+      if (propVal.link) return findOneByProp('link', propVal.link, cb)
+      if (propVal.fingerprint) return findOneByProp('fingerprint', propVal.fingerprint, cb)
+      if (propVal.pubKey) return findOneByProp('pub', utils.pubKeyString(propVal.pubKey), cb)
+    }
+
+    let match
+    async.some(indexedProps, function iterator (prop, done) {
+      findOneByProp(prop, propVal, function (err, result) {
+        if (err) return done()
+
+        match = match || result
+        done(null, true)
+      })
+    }, function (err) {
+      if (err) return cb(err)
+      if (!match) return cb(utils.notFoundErr())
+
+      cb(null, match)
+    })
+  }
+
+  function setIdentityInfo (identityInfo) {
+    me = opts.identityInfo
+    myDebug = utils.subdebugger(debug, opts.name || me.permalink.slice(0, 6))
+  }
+
+  function findOneByProp (prop, val, cb) {
+    // switch (prop) {
+    // case 'link':
+    // case 'permalink':
+    //   if (val === me[prop]) {
+    //     return cb(null, me)
+    //   }
+
+    //   break
+    // case 'pub':
+    // case 'fingerprint':
+    //   if (me.object.pubkeys.some(k => k[prop] === val)) {
+    //     return cb(null, me)
+    //   }
+    // }
+
+    indexes[prop].findOne({ eq: val, keys: false }, cb)
+  }
+
+  function close () {
+    closed = true
+  }
+
+  return utils.extend(emitter, {
+    lookupIdentity: lookupIdentity,
+    byFingerprint: findOneByProp.bind(null, 'fingerprint'),
+    byPubKey: findOneByProp.bind(null, 'pub'),
+    // byPubKey: function (pubKey) {
+    //   findOneByProp('pub', pubKey, function () {
+    //     console.log(arguments)
+    //   })
+    // },
+    byLink: findOneByProp.bind(null, 'link'),
+    // byLink: function (link) {
+    //   findOneByProp('link', link, function () {
+    //     console.log(arguments)
+    //   })
+    // },
+    byPermalink: findOneByProp.bind(null, 'permalink'),
+    createReadStream: function (opts) {
+      opts = opts || {}
+      if (opts.keys !== true) opts.keys = false
+
+      return indexedDB.createReadStream(opts)
+    },
+    setIdentityInfo: setIdentityInfo
+  })
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-actions.html">actions</a></li><li><a href="module-addressBook.html">addressBook</a></li><li><a href="module-channel.html">channel</a></li><li><a href="module-constants.html">constants</a></li><li><a href="module-controls.html">controls</a></li><li><a href="module-defaults.html">defaults</a></li><li><a href="module-head.html">head</a></li><li><a href="module-manifest.html">manifest</a></li><li><a href="module-networks.html">networks</a></li><li><a href="module-node.html">node</a></li><li><a href="module-objectsDB.html">objectsDB</a></li><li><a href="module-protobufs.html">protobufs</a></li><li><a href="module-retrystream.html">retrystream</a></li><li><a href="module-sealer.html">sealer</a></li><li><a href="module-sealsDB.html">sealsDB</a></li><li><a href="module-sealwatch.html">sealwatch</a></li><li><a href="module-sender.html">sender</a></li><li><a href="module-status.html">status</a></li><li><a href="module-topics.html">topics</a></li><li><a href="module-typeforce.html">typeforce</a></li><li><a href="module-types.html">types</a></li><li><a href="module-utils.html">utils</a></li><li><a href="module-validator.html">validator</a></li><li><a href="module-watchesDB.html">watchesDB</a></li></ul><h3>Classes</h3><ul><li><a href="module-channel-Channel.html">Channel</a></li><li><a href="module-node-Tradle.html">Tradle</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sun Aug 14 2016 20:44:32 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
