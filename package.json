@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "tap test/*.test.js",
+    "test": "tap `git ls-files test/*.test.js`",
     "coverage": "npm test -- --cov --coverage-report=lcov",
     "installhooks": "./installhooks.sh",
     "postinstall": "npm run installhooks",

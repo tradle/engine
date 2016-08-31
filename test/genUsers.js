@@ -45,6 +45,8 @@ function genUsers (opts) {
           formatted: first + ' ' + last
         }
       }
+
+      r.keys = r.keys.map(k => k.toJSON(true))
     })
 
     fs.writeFile(file, JSON.stringify(results, null, 2))
