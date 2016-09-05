@@ -6,7 +6,7 @@ SDK for real-rime auditable blockchain-based messaging
 
 [![Build status](https://travis-ci.org/tradle/engine.svg)](https://travis-ci.org/tradle/engine)
 
-This is the main component of Tradle's SDK that provides real-time messaging with an option for messages to be sealed on the blockchain. Messages can be plain or structured messages. The engine can be made to work on mobiles, desktops and servers. Having one codebase is important to minimize security reviews. 
+This main component of Tradle's SDK is two-turbine engine, a two-channel communication device: 1) real-time messaging, and 2) blockchain seals. Messages can be plain or structured messages. The engine can be made to work on mobiles, desktops and servers. Having one codebase is important to minimize security reviews. 
 
 The engine is designed to work with intermittent connections, common on mobile devices. For that it keeps an internal log of all actions and events, and resumes operations as soon as network connection is restored.
 
