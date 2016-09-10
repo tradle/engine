@@ -22,7 +22,7 @@
     "debug": "^2.2.0",
     "deep-equal": "^1.0.1",
     "error": "^7.0.2",
-    "feed-indexer": "^1.0.0",
+    "feed-indexer": "^1.0.1",
     "hydration": "^1.0.0",
     "json-stable-stringify": "^1.0.1",
     "level-errors": "^1.0.4",
