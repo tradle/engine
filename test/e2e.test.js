@@ -48,7 +48,7 @@ let INSTANCE_COUNT = 0
 test('self in address book', function (t) {
   // TODO: should be stricter
   // self should be in addressBook immediately
-  t.timeoutAfter(1000)
+  t.timeoutAfter(2000)
 
   let alice = contexts.nUsers(1)[0]
   alice.actions.once('addcontact', function () {
@@ -219,13 +219,13 @@ test('don\'t receive duplicate messages', function (t) {
 })
 
 test('do receive messages carrying already known objects', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(2000)
 
   contexts.twoFriendsSentReceived(function (err, context) {
     if (err) throw err
 
-    context.sender.signAndSend({
-      object: context.object.object,
+    context.sender.send({
+      link: context.message.objectinfo.link,
       to: context.receiver._recipientOpts
     }, rethrow)
 
@@ -813,7 +813,7 @@ test('update identity', function (t) {
   const oldIdentity = utils.clone(alice.identity)
   const newKey = utils.genKey({
     type: 'ec',
-    curve: 'ed25519'
+    curve: 'p384'
   }).set('purpose', 'goof off')
 
   async.series([
