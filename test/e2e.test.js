@@ -7,6 +7,7 @@ const extend = require('xtend')
 const memdown = require('memdown')
 const async = require('async')
 const collect = require('stream-collector')
+const Cache = require('lru-cache')
 const Wallet = require('@tradle/simple-wallet')
 const testHelpers = require('@tradle/test-helpers')
 // const kiki = require('@tradle/kiki')
@@ -806,76 +807,87 @@ test('send sealed', function (t) {
   })
 })
 
-test('update identity', function (t) {
-  const users = contexts.nUsers(2)
-  const alice = users[0]
-  const bob = users[1]
-  const oldIdentity = utils.clone(alice.identity)
-  const newKey = utils.genKey({
-    type: 'ec',
-    curve: 'p384'
-  }).set('purpose', 'goof off')
+newUpdateIdentityTest(false)
+newUpdateIdentityTest(true)
 
-  async.series([
-    testAlice,
-    testBob
-  ], err => {
-    if (err) throw err
+function newUpdateIdentityTest (caching) {
+  test(`update identity (caching:${caching})`, function (t) {
+    const users = contexts.nUsers(2)
+    if (caching) {
+      users.forEach(u => {
+        u.addressBook.setCache(new Cache({ max: Infinity }))
+      })
+    }
 
-    t.end()
-    users.forEach(u => u.destroy())
-  })
+    const alice = users[0]
+    const bob = users[1]
+    const oldIdentity = utils.clone(alice.identity)
+    const newKey = utils.genKey({
+      type: 'ec',
+      curve: 'p384'
+    }).set('purpose', 'goof off')
 
-  function testAlice (done) {
-    const newIdentity = utils.clone(oldIdentity)
-    newIdentity.pubkeys = newIdentity.pubkeys.slice()
-    delete newIdentity[SIG]
-    const keys = alice.keys.slice()
-
-    keys.push(newKey)
-    newIdentity.pubkeys.push(newKey.toJSON())
-    alice.updateIdentity({
-      keys: keys,
-      identity: newIdentity
-    }, err => {
+    async.series([
+      testAlice,
+      testBob
+    ], err => {
       if (err) throw err
 
-      t.same(newIdentity, protocol.body(alice.identity))
-      alice.addressBook.lookupIdentity(newKey.toJSON(), function (err, result) {
+      t.end()
+      users.forEach(u => u.destroy())
+    })
+
+    function testAlice (done) {
+      const newIdentity = utils.clone(oldIdentity)
+      newIdentity.pubkeys = newIdentity.pubkeys.slice()
+      delete newIdentity[SIG]
+      const keys = alice.keys.slice()
+
+      keys.push(newKey)
+      newIdentity.pubkeys.push(newKey.toJSON())
+      alice.updateIdentity({
+        keys: keys,
+        identity: newIdentity
+      }, err => {
         if (err) throw err
 
-        t.same(protocol.body(result.object), newIdentity)
-        alice.objects.byPermalink(alice.permalink, function (err, result) {
-          t.error(err)
-          t.equal(result.link, alice.link)
-          done(null, newIdentity)
+        t.same(newIdentity, protocol.body(alice.identity))
+        alice.addressBook.lookupIdentity(newKey.toJSON(), function (err, result) {
+          if (err) throw err
+
+          t.same(protocol.body(result.object), newIdentity)
+          alice.objects.byPermalink(alice.permalink, function (err, result) {
+            t.error(err)
+            t.equal(result.link, alice.link)
+            done(null, newIdentity)
+          })
         })
       })
-    })
-  }
+    }
 
-  function testBob (done) {
-    bob.addContact(oldIdentity, err => {
-      if (err) throw err
-
-      bob.addContact(alice.identity, err => {
+    function testBob (done) {
+      bob.addContact(oldIdentity, err => {
         if (err) throw err
 
-        async.each([
-          newKey.toJSON(),
-          { permalink: alice.permalink }
-        ], function iterator (identifier, onfound) {
-          bob.addressBook.lookupIdentity(identifier, function (err, result) {
-            if (err) throw err
+        bob.addContact(alice.identity, err => {
+          if (err) throw err
 
-            t.same(result.object, alice.identity)
-            onfound()
-          })
-        }, done)
+          async.each([
+            newKey.toJSON(),
+            { permalink: alice.permalink }
+          ], function iterator (identifier, onfound) {
+            bob.addressBook.lookupIdentity(identifier, function (err, result) {
+              if (err) throw err
+
+              t.same(result.object, alice.identity)
+              onfound()
+            })
+          }, done)
+        })
       })
-    })
-  }
-})
+    }
+  })
+}
 
 test('receiving forwarded messages', function (t) {
   contexts.nFriends(3, function (err, friends) {

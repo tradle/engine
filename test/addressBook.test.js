@@ -8,6 +8,7 @@ const leveldown = require('memdown')
 const collect = require('stream-collector')
 // const tradle = require('../')
 const changesFeed = require('changes-feed')
+const Cache = require('lru-cache')
 const createAddressBook = require('../lib/dbs/addressBook')
 const users = require('./fixtures/users')
 const utils = require('../lib/utils')
@@ -88,67 +89,85 @@ const helpers = require('./helpers')
 //   }
 // })
 
-test('update identity', function (t) {
-  const changes = helpers.nextFeed()
-  const originalHash = 'abc'
-  const updateHash = 'abc1'
+test('update identity (no caching)', newUpdateTest())
+test('update identity (caching)', newUpdateTest(true))
 
-  const ted = extend(users[0].identity)
-  const newTed = extend(ted)
-  newTed[PREVLINK] = newTed[PERMALINK] = originalHash
-  newTed.name = 'ted!'
+function newUpdateTest (doCache) {
+  return function (t) {
+    const changes = helpers.nextFeed()
+    const originalHash = 'abc'
+    const updateHash = 'abc1'
 
-  const keeper = helpers.keeper()
-  keeper.batch([
-    {
-      type: 'put',
-      key: originalHash,
-      value: ted
-    },
-    {
-      type: 'put',
-      key: updateHash,
-      value: newTed
+    const ted = extend(users[0].identity)
+    const newTed = extend(ted)
+    newTed[PREVLINK] = newTed[PERMALINK] = originalHash
+    newTed.name = 'ted!'
+
+    const keeper = helpers.keeper()
+    keeper.batch([
+      {
+        type: 'put',
+        key: originalHash,
+        value: ted
+      },
+      {
+        type: 'put',
+        key: updateHash,
+        value: newTed
+      }
+    ], start)
+
+    const identities = createAddressBook({
+      leveldown: leveldown,
+      changes: changes,
+      keeper: keeper,
+      db: helpers.nextDB(),
+      identityInfo: {
+        object: ted,
+        link: originalHash,
+        permalink: originalHash
+      }
+    })
+
+    if (doCache) {
+      identities.setCache(new Cache({
+        max: Infinity
+      }))
     }
-  ], start)
 
-  const identities = createAddressBook({
-    leveldown: leveldown,
-    changes: changes,
-    keeper: keeper,
-    db: helpers.nextDB(),
-    identityInfo: {
-      object: ted,
-      link: originalHash,
-      permalink: originalHash
-    }
-  })
+    const actions = createActions({ changes })
+    actions.addContact(ted, originalHash)
+    actions.addContact(newTed, updateHash)
 
-  const actions = createActions({ changes })
-  actions.addContact(ted, originalHash)
-  actions.addContact(newTed, updateHash)
-
-  function start (err) {
-    if (err) throw err
-
-    identities.lookupIdentity(newTed.pubkeys[0].fingerprint, function (err, storedTed) {
+    function start (err) {
       if (err) throw err
 
-      t.same(storedTed.object, newTed)
-      testStreams()
-    })
-  }
+      identities.lookupIdentity(newTed.pubkeys[0].fingerprint, function (err, storedTed) {
+        if (err) throw err
 
-  function testStreams () {
-    collect(identities.createReadStream(), function (err, stored) {
-      if (err) throw err
+        t.same(storedTed.object, newTed)
+        if (doCache) {
+          var cached = identities.getCache().get('link' + updateHash)
+          t.same(cached.object, newTed)
+          t.equals(cached.link, updateHash)
+          t.equals(cached.permalink, originalHash)
+        }
 
-      t.equal(stored.length, 1)
-      stored = stored[0]
-      t.same(stored.object, newTed)
-      t.equal(stored.link, updateHash)
-      t.equal(stored.permalink, originalHash)
-      t.end()
-    })
+        testStreams()
+      })
+    }
+
+    function testStreams () {
+      collect(identities.createReadStream(), function (err, stored) {
+        if (err) throw err
+
+        t.equal(stored.length, 1)
+        stored = stored[0]
+        t.same(stored.object, newTed)
+        t.equal(stored.link, updateHash)
+        t.equal(stored.permalink, originalHash)
+        t.end()
+      })
+    }
   }
-})
+}
