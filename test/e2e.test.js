@@ -1121,44 +1121,59 @@ test.skip('pairing protocol', function (t) {
   }
 })
 
-// test.only('3-tier', function (t) {
-//   contexts.nFriends(3, function (err, friends) {
-//     if (err) throw err
+test('receive a third-party conversation', function (t) {
+  contexts.nFriends(3, function (err, friends) {
+    if (err) throw err
 
-//     helpers.connect(friends)
+    helpers.connect(friends)
 
-//     const alice = friends[0]
-//     const bob = friends[1]
-//     const carol = friends[2]
+    const alice = friends[0]
+    const bob = friends[1]
+    const carol = friends[2]
+    // console.log('alice', alice.permalink)
+    // console.log('bob', bob.permalink)
+    // console.log('carol', carol.permalink)
 
-//     let signed
-//     alice.signAndSend({
-//       object: {
-//         [TYPE]: 'thang',
-//         a: 1,
-//         b: 2
-//       },
-//       to: bob._recipientOpts,
-//     }, function (err, result) {
-//       signed = result.object.object
-//     })
+    // let signedObj
+    let signedMsg
+    alice.signAndSend({
+      object: {
+        [TYPE]: 'thang',
+        a: 1,
+        b: 2
+      },
+      to: bob._recipientOpts,
+    }, function (err, result) {
+      if (err) throw err
 
-//     bob.on('message', wrapper => {
-//       bob.send({
-//         link: wrapper.link,
-//         to: carol._recipientOpts
-//       }, rethrow)
-//     })
+      signedMsg = result.message.object
+    })
 
-//     carol.on('message', function (wrapper) {
-//       if (wrapper.objectinfo.type !== MESSAGE_TYPE) return
+    bob.on('message', wrapper => {
+      bob.send({
+        object: wrapper.object,
+        to: carol._recipientOpts
+      }, rethrow)
+    })
 
-//       carol.receive(wrapper.object.object, { permalink: wrapper.objectinfo.author }, function (err, wrapper) {
-//         console.log(err || wrapper)
-//       })
-//     })
-//   })
-// })
+    let togo = 2
+    carol.on('message', function (wrapper) {
+      if (--togo) return
+
+      collect(carol.conversation({
+        a: alice.permalink,
+        b: bob.permalink
+      }), function (err, msgs) {
+        if (err) throw err
+
+        t.equal(msgs.length, 1)
+        t.same(msgs[0].object, signedMsg)
+        t.end()
+        friends.forEach(f => f.destroy())
+      })
+    })
+  })
+})
 
 function rethrow (err) {
   if (err) throw err
