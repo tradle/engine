@@ -10,7 +10,9 @@ tradle.dbs = {
   // tx: require('./lib/dbs/txs'),
   seals: require('./lib/dbs/seals'),
   watches: require('./lib/dbs/watches'),
-  addressBook: require('./lib/dbs/addressBook')
+  addressBook: require('./lib/dbs/addressBook'),
+  simpleCustom: require('./lib/dbs/simpleCustom'),
+  msgMeta: require('./lib/dbs/msgMeta'),
 }
 
 tradle.retrystream = require('./lib/retrystream')

@@ -1,6 +1,7 @@
 'use strict'
 
 // const WHY = require('why-is-node-running')
+const path = require('path')
 const deepEqual = require('deep-equal')
 const test = require('tape')
 const extend = require('xtend')
@@ -19,6 +20,7 @@ const contexts = require('./contexts')
 const Node = require('../lib/node')
 const createSealer = require('../lib/sealer')
 const createSender = require('../lib/sender')
+const createMsgMetaDB = require('../lib/dbs/msgMeta')
 const constants = require('../lib/constants')
 const users = require('./fixtures/users')
 const PREVLINK = constants.PREVLINK
@@ -1172,6 +1174,72 @@ test('receive a third-party conversation', function (t) {
         friends.forEach(f => f.destroy())
       })
     })
+  })
+})
+
+test('custom indexes', function (t) {
+  contexts.nFriends(2, function (err, friends) {
+    if (err) throw err
+
+    const props = ['context']
+    const alice = friends[0]
+    const aliceContextDB = createMsgMetaDB({
+      node: alice,
+      db: 'msgMeta.db',
+      props: props
+    })
+
+    const bob = friends[1]
+    const bobContextDB = createMsgMetaDB({
+      node: bob,
+      db: 'msgMeta.db',
+      props: props
+    })
+
+    helpers.connect(friends)
+
+    let link
+    let context = 'boo!'
+    alice.signAndSend({
+      to: bob._recipientOpts,
+      object: {
+        [TYPE]: 'something',
+        hey: 'ho'
+      },
+      other: {
+        context: context
+      }
+    }, function (err, result) {
+      if (err) throw err
+
+      link = result.message.link
+    })
+
+    bob.signAndSend({
+      to: alice._recipientOpts,
+      object: {
+        [TYPE]: 'something',
+        hey: 'ho'
+      }
+    }, rethrow)
+
+    let togo = 2
+    bob.on('message', process)
+    alice.on('message', process)
+
+    function process () {
+      if (--togo) return
+
+      collect(aliceContextDB.context('boo!'), function (err, msgs) {
+        if (err) throw err
+
+        t.equal(msgs.length, 1)
+        t.equal(msgs[0].link, link)
+        t.same(msgs[0].context, context)
+        t.end()
+        friends.forEach(f => f.destroy())
+      })
+    }
   })
 })
 
