@@ -1158,10 +1158,7 @@ test('receive a third-party conversation', function (t) {
       }, rethrow)
     })
 
-    let togo = 2
     carol.on('message', function (wrapper) {
-      if (--togo) return
-
       collect(carol.conversation({
         a: alice.permalink,
         b: bob.permalink
