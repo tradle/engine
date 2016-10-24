@@ -12,7 +12,14 @@ const Wallet = require('@tradle/simple-wallet')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
 const Node = require('../lib/node')
-const names = ['alice', 'bob', 'carol', 'david', 'eve', 'falstaff', 'ganondorf']
+const names = [
+  'alice', 'bob', 'carol',
+  'david', 'eve', 'falstaff',
+  'ganondorf', 'pooh', 'piglet',
+  'karlsson', 'athos', 'portos',
+  'aramis', 'd\'Artgagnan', 'sheldon'
+]
+
 const TYPE = constants.TYPE
 const IDENTITY_TYPE = constants.TYPES.IDENTITY
 const DEFAULT_NETWORK_NAME = 'testnet'
