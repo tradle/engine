@@ -22,6 +22,7 @@ const createSealer = require('../lib/sealer')
 const createSender = require('../lib/sender')
 const createMsgMetaDB = require('../lib/dbs/msgMeta')
 const constants = require('../lib/constants')
+const Partial = require('../lib/partial')
 const users = require('./fixtures/users')
 const PREVLINK = constants.PREVLINK
 const PERMALINK = constants.PERMALINK
@@ -1237,6 +1238,49 @@ test('custom indexes', function (t) {
         friends.forEach(f => f.destroy())
       })
     }
+  })
+})
+
+test('partials', function (t) {
+  contexts.nFriends(2, function (err, friends) {
+    if (err) throw err
+
+    helpers.connect(friends)
+    const [alice, bob] = friends
+
+    const object = {
+      [TYPE]: 'something',
+      a : 'b',
+      c: {
+        d: 1,
+      },
+      e: true
+    }
+
+    alice.createObject({ object: utils.clone(object) }, function (err, result) {
+      if (err) throw err
+
+      const partial = Partial.from(result.object)
+        .add({ property: TYPE, key: true, value: true })
+        .add({ property: 'c', key: false, value: true })
+        .build()
+
+      alice.signAndSend({
+        object: partial,
+        to: bob._recipientOpts
+      }, rethrow)
+    })
+
+    bob.on('message', function (msg) {
+      const leaves = Partial.interpretLeaves(msg.object.object.leaves)
+      t.same(leaves, [
+        { key: TYPE, value: 'something' },
+        { value: { d: 1 } }
+      ])
+
+      friends.forEach(friend => friend.destroy())
+      t.end()
+    })
   })
 })
 

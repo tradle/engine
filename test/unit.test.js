@@ -10,7 +10,12 @@ const collect = require('stream-collector')
 const controls = require('../lib/controls')
 const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
+const Partial = require('../lib/partial')
 const users = require('./fixtures/users')
+const {
+  TYPE,
+  SIG
+} = require('../lib/constants')
 
 test('merge streams', function (t) {
   t.plan(1)
@@ -318,6 +323,44 @@ test('identity serialization', function (t) {
     const deserialized = utils.deserializeIdentity(utils.serializeIdentity(identity))
     t.same(deserialized, identity)
   })
+
+  t.end()
+})
+
+test('partials', function (t) {
+  const obj = {
+    [TYPE]: 'tradle.Something',
+    [SIG]: '...',
+    a: 1,
+    b: {
+      b1: 'hey'
+    },
+    c: {
+      c1: {
+        c11: 'ho'
+      },
+      c2: 4
+    },
+    d: true
+  }
+
+  const partialType = Partial
+    .from(obj)
+    .add({ property: TYPE, key: true, value: true })
+    .build()
+
+  t.equal(partialType.sig, obj[SIG])
+  t.equal(Partial.verify(partialType), true)
+
+  const partialA = Partial
+    .from(obj)
+    .add({ property: 'a', key: true, value: true })
+    .build()
+
+  t.equal(Partial.verify(partialA), true)
+
+  partialType.leaves = partialA.leaves
+  t.equal(Partial.verify(partialType), false)
 
   t.end()
 })

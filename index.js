@@ -28,5 +28,6 @@ tradle.constants = require('./lib/constants')
 tradle.topics = require('./lib/topics')
 tradle.protobuf = require('./lib/proto')
 tradle.node = require('./lib/node')
+tradle.partial = require('./lib/partial')
 
 tradle.typeforce = require('./lib/typeforce')
