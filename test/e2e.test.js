@@ -1,5 +1,7 @@
 'use strict'
 
+process.env.NODE_ENV = process.env.NODE_ENV || 'test'
+
 // const WHY = require('why-is-node-running')
 const path = require('path')
 const deepEqual = require('deep-equal')
@@ -414,7 +416,7 @@ test('conversation', function (t) {
 })
 
 test('delete watch after X confirmed', function (t) {
-  t.timeoutAfter(2000)
+  t.timeoutAfter(5000)
   const confirmedAfter = defaults.confirmedAfter
   defaults.confirmedAfter = 3
 
@@ -426,7 +428,14 @@ test('delete watch after X confirmed', function (t) {
     const blockchain = sender.blockchain
 
     async.parallel(context.friends.map(node => {
-      return done => checkWatch(node, 1, done)
+      return function (cb) {
+        async.parallel([
+          done => checkWatch(node, 1, done),
+          // make sure node syncs so next sync call
+          // isn't amalgamated into the pending one
+          done => node.sealwatch.once('sync', () => done())
+        ], cb)
+      }
     }), function (err) {
       if (err) throw err
 
