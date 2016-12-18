@@ -2,6 +2,7 @@
 
 const test = require('tape')
 const extend = require('xtend')
+const async = require('async')
 const protocol = require('@tradle/protocol')
 // const createChainTracker = require('chain-tracker')
 const bitcoin = require('@tradle/bitcoinjs-lib')
@@ -119,6 +120,109 @@ test('watch', function (t) {
   function checkAction (action) {
     t.notOk(createdActions[action.topic])
   }
+})
+
+test('batch', function (t) {
+  t.timeoutAfter(100000)
+
+  const numTxs = 40
+  const keyToVal = {}
+  new Array(numTxs).fill(0).forEach((o, i) => {
+    keyToVal['blah' + i] = {
+      [TYPE]: 'something',
+      prop: 'val',
+      count: i
+    }
+  })
+
+  // protocol.sign({ object: obj, }, function (err, obj) {
+
+  // })
+
+  const keeper = helpers.nextDB()
+  const batch = utils.mapToBatch(keyToVal)
+  keeper.batch(batch)
+
+  const alice = 'alice'
+  const authorLink = 'bob'
+  const bob = helpers.dummyIdentity(authorLink)
+  const bobKey = protocol.genECKey()
+  const networkName = 'testnet'
+  const bobKeyWIF = utils.privToWIF(bobKey.priv, networkName)
+
+  const changes = helpers.nextFeed()
+  const actions = Actions({ changes: changes })
+
+  const transactor = helpers.transactor(bobKeyWIF)
+  // const chaintracker =  createChainTracker({
+  //   db: helpers.nextDB({ valueEncoding: 'json' }),
+  //   blockchain: transactor.blockchain,
+  //   networkName: networkName,
+  //   confirmedAfter: 10 // stop tracking a tx after 10 blocks
+  // })
+
+  const watchDB = createWatchDB({
+    changes: changes,
+    db: helpers.nextDB(),
+    keeper: keeper
+  })
+
+  const sealwatch = createSealWatch({
+    actions: actions,
+    // chaintracker: chaintracker,
+    blockchain: transactor.blockchain,
+    networkName: networkName,
+    db: helpers.nextDB(),
+    watches: watchDB,
+    objects: {}, // don't actually need it yet
+    batchSize: 5,
+    syncInterval: 2000,
+    interBatchTimeout: 100,
+    confirmedAfter: 10
+  })
+
+  sealwatch.on('error', rethrow)
+  sealwatch.start()
+
+  const blockchain = transactor.blockchain
+  const txs = blockchain.addresses.transactions
+  let total = 0
+  blockchain.addresses.transactions = function (txs, cb) {
+    t.ok(txs.length <= 5)
+    total += txs.length
+    cb(null, [])
+    if (total === numTxs) {
+      sealwatch.stop()
+      t.end()
+    }
+  }
+
+  async.forEach(Object.keys(keyToVal), function (link, done) {
+    const basePubKey = protocol.genECKey()
+    const sealPubKey = protocol.genECKey()
+
+    const address = utils.pubKeyToAddress(sealPubKey, networkName)
+    actions.createWatch({
+      link: link,
+      address: address,
+      basePubKey: basePubKey,
+      watchType: watchTypes.thisVersion
+    }, rethrow)
+
+    // const sealPrevPubKey = protocol.genECKey()
+    transactor.send({
+      to: [
+        {
+          address: address,
+          amount: 10000
+        }
+      ]
+    }, done)
+  }, function (err) {
+    if (err) throw err
+
+    console.log('finished setup')
+  })
 })
 
 function rethrow (err) {
