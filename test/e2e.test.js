@@ -115,6 +115,29 @@ test('`createObject`', function (t) {
   // })
 })
 
+test('`saveObject`', function (t) {
+  t.timeoutAfter(1000)
+
+  contexts.nFriends(2, function (err, friends) {
+    if (err) throw err
+
+    const [alice, bob] = friends
+    const object = { [TYPE]: 'blah', a: 1 }
+    alice.createObject({ object: utils.clone(object) }, function (err, result) {
+      if (err) throw err
+
+      bob.saveObject({ object: result.object }, function (err, result) {
+        if (err) throw err
+
+        t.equal(result.author, alice.permalink)
+        t.end()
+        friends.forEach(friend => friend.destroy())
+        // t.equal(err.type, 'exists')
+      })
+    })
+  })
+})
+
 // test('unchained self', function (t) {
 
 // })
