@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_ENV=test tap `git ls-files test/*.test.js`",
+    "test": "NODE_ENV=test SEALWATCH_BATCH_SIZE=50 SEALWATCH_SYNC_INTERVAL=100 SEALWATCH_BATCH_TIMEOUT=50 tap `git ls-files test/*.test.js`",
     "coverage": "npm test -- --cov --coverage-report=lcov",
     "installhooks": "./installhooks.sh",
     "postinstall": "npm run installhooks",
