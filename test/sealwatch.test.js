@@ -220,8 +220,6 @@ test('batch', function (t) {
     }, done)
   }, function (err) {
     if (err) throw err
-
-    console.log('finished setup')
   })
 })
 
