@@ -1,5 +1,3 @@
-'use strict'
-
 const test = require('tape')
 const async = require('async')
 const extend = require('xtend')

@@ -1,5 +1,3 @@
-'use strict'
-
 const async = require('async')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE

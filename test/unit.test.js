@@ -1,5 +1,3 @@
-'use strict'
-
 const test = require('tape')
 const backoff = require('backoff')
 const memdown = require('memdown')

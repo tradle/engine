@@ -1,5 +1,3 @@
-'use strict'
-
 const crypto = require('crypto')
 const deepEqual = require('deep-equal')
 const leveldown = require('memdown')
