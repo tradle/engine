@@ -57,7 +57,6 @@
     "minimist": "^1.2.0",
     "nkey-bitcoin": "^1.2.0",
     "nkey-curve25519": "^1.0.1",
-    "nkey-dsa": "^1.0.1",
     "nkey-ecdsa": "^1.0.1",
     "random-name": "^0.1.1",
     "sendy": "^2.0.1",
