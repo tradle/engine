@@ -11,6 +11,7 @@ const Wallet = require('@tradle/simple-wallet')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
 const Node = require('../lib/node')
+const { testnet } = require('../lib/networks/bitcoin')
 const names = [
   'alice', 'bob', 'carol',
   'david', 'eve', 'falstaff',
@@ -21,7 +22,7 @@ const names = [
 
 const TYPE = constants.TYPE
 const IDENTITY_TYPE = constants.TYPES.IDENTITY
-const DEFAULT_NETWORK_NAME = 'testnet'
+const DEFAULT_NETWORK = testnet
 const helpers = exports
 const noop = function () {}
 let dbCounter = 0
@@ -150,14 +151,14 @@ exports.userToOpts = function userToOpts (user, name) {
 }
 
 exports.createNode = function createNode (opts) {
-  const networkName = opts.networkName || DEFAULT_NETWORK_NAME
+  const network = opts.network || DEFAULT_NETWORK
   const priv = utils.chainKey(opts.keys).privKeyString
   const transactor = opts.transactor || helpers.transactor(priv, opts.blockchain)
   const blockchain = opts.blockchain || transactor.blockchain
   opts = utils.extend(opts, {
     dir: opts.dir || helpers.nextDir(),
     keeper: helpers.keeper(),
-    networkName: networkName,
+    network: network,
     transactor: transactor,
     blockchain: blockchain,
     leveldown: opts.leveldown || leveldown,
@@ -256,7 +257,7 @@ exports.genUsers = function genUsers (n, cb) {
 }
 
 process.on('uncaughtException', function (err) {
-  if (err.tfError) console.log(err.tfError.stack)
+  if (err.__error) console.log(err.__error.stack)
 
   throw err
 })

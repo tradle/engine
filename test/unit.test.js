@@ -8,6 +8,7 @@ const collect = require('stream-collector')
 const controls = require('../lib/controls')
 const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
+const network = require('../lib/networks/bitcoin').testnet
 const Partial = require('../lib/partial')
 const users = require('./fixtures/users')
 const {
@@ -43,12 +44,8 @@ test('merge streams', function (t) {
 })
 
 test('pub key to address', function (t) {
-  const pub = {
-    pub: new Buffer('030135adc7e0be8429fc903511f2f72ea481b25f9177d9f2f3d2ecfcd81d1b02b4', 'hex'),
-    curve: 'secp256k1'
-  }
-
-  t.equal(utils.pubKeyToAddress(pub, 'testnet'), 'muZH3FNp1836Eyxc966NnfWwe79TnUhuFi')
+  const pub = new Buffer('030135adc7e0be8429fc903511f2f72ea481b25f9177d9f2f3d2ecfcd81d1b02b4', 'hex')
+  t.equal(network.pubKeyToAddress(pub), 'muZH3FNp1836Eyxc966NnfWwe79TnUhuFi')
   t.end()
 })
 

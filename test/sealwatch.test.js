@@ -3,7 +3,6 @@ const extend = require('xtend')
 const async = require('async')
 const protocol = require('@tradle/protocol')
 // const createChainTracker = require('chain-tracker')
-const bitcoin = require('@tradle/bitcoinjs-lib')
 const constants = require('../lib/constants')
 const watchTypes = constants.watchType
 const PERMALINK = constants.PERMALINK
@@ -20,6 +19,7 @@ const createSealer = require('../lib/sealer')
 const utils = require('../lib/utils')
 const Actions = require('../lib/actions')
 const helpers = require('./helpers')
+const network = require('../lib/networks/bitcoin').testnet
 
 test('watch', function (t) {
   t.plan(3)
@@ -48,7 +48,7 @@ test('watch', function (t) {
   const bob = helpers.dummyIdentity(authorLink)
   const bobKey = protocol.genECKey()
   const networkName = 'testnet'
-  const bobKeyWIF = utils.privToWIF(bobKey.priv, networkName)
+  const bobKeyWIF = network.privToWIF(bobKey.priv)
 
   const changes = helpers.nextFeed()
   const actions = Actions({ changes: changes })
@@ -68,10 +68,10 @@ test('watch', function (t) {
   })
 
   const sealwatch = createSealWatch({
-    actions: actions,
+    actions,
     // chaintracker: chaintracker,
     blockchain: transactor.blockchain,
-    networkName: networkName,
+    network,
     db: helpers.nextDB(),
     watches: watchDB,
     objects: {}, // don't actually need it yet
@@ -85,7 +85,7 @@ test('watch', function (t) {
   const basePubKey = protocol.genECKey()
   const sealPubKey = protocol.genECKey()
 
-  const address = utils.pubKeyToAddress(sealPubKey, networkName)
+  const address = network.pubKeyToAddress(sealPubKey.pub)
   actions.createWatch({
     link: link,
     address: address,
@@ -146,7 +146,7 @@ test('batch', function (t) {
   const bob = helpers.dummyIdentity(authorLink)
   const bobKey = protocol.genECKey()
   const networkName = 'testnet'
-  const bobKeyWIF = utils.privToWIF(bobKey.priv, networkName)
+  const bobKeyWIF = network.privToWIF(bobKey.priv, networkName)
 
   const changes = helpers.nextFeed()
   const actions = Actions({ changes: changes })
@@ -166,10 +166,10 @@ test('batch', function (t) {
   })
 
   const sealwatch = createSealWatch({
-    actions: actions,
+    actions,
     // chaintracker: chaintracker,
     blockchain: transactor.blockchain,
-    networkName: networkName,
+    network,
     db: helpers.nextDB(),
     watches: watchDB,
     objects: {}, // don't actually need it yet
@@ -199,7 +199,7 @@ test('batch', function (t) {
     const basePubKey = protocol.genECKey()
     const sealPubKey = protocol.genECKey()
 
-    const address = utils.pubKeyToAddress(sealPubKey, networkName)
+    const address = network.pubKeyToAddress(sealPubKey.pub)
     actions.createWatch({
       link: link,
       address: address,
