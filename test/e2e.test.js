@@ -519,36 +519,60 @@ test('forget', function (t) {
       const obj = { [TYPE]: 'hey', message: pair[1].name }
       return cb => helpers.send(pair[0], pair[1], obj, cb)
     })
-    // .reduce(function (arr, next) {
-    //   return next ? arr.concat(next) : arr
-    // }, [])
-    // .filter(task => task) // filter out nulls
 
-    async.parallel(tasks, function (err) {
+    async.parallel(tasks, function (err, results) {
       if (err) throw err
 
-      collect(alice.objects.conversation({ with: bob.permalink }), function (err, c) {
+      const aliceAndBobLinks = [alice.permalink, bob.permalink].sort(alphabetical)
+      const convo = results.filter(result => {
+        const { message } = result
+        const participants = [message.author, message.recipient].sort(alphabetical)
+        return arraysEqual(participants, aliceAndBobLinks)
+      })
+
+      // this object should not be deleted
+      // because it's shared with another party
+      const sharedWithCarol = convo[0].object.link
+
+      helpers.send(alice, carol, sharedWithCarol, function (err) {
         if (err) throw err
 
-        t.equal(c.length, 2)
-        alice.forget(bob.permalink, function (err, forgotten) {
+        collect(alice.objects.conversation({ with: bob.permalink }), function (err, c) {
           if (err) throw err
 
-          t.equal(forgotten.length, 2)
-          async.parallel([
-            function aliceAndBob (done) {
-              collect(alice.objects.conversation({ with: bob.permalink }), done)
-            },
-            function aliceAndCarol (done) {
-              collect(alice.objects.conversation({ with: carol.permalink }), done)
-            }
-          ], function (err, conversations) {
+          t.equal(c.length, 2)
+
+          // both messages and underlying objects should be forgotten
+          const willBeForgotten = c.concat(c.map(item => item.objectinfo))
+            .map(item => item.link)
+            .filter(link => link !== sharedWithCarol)
+            .sort(alphabetical)
+
+          alice.forget(bob.permalink, function (err, forgotten) {
             if (err) throw err
 
-            t.equal(conversations[0].length, 0)
-            t.equal(conversations[1].length, 2)
-            friends.forEach(friend => friend.destroy())
-            t.end()
+            const links = forgotten
+              .map(item => item.link)
+              .filter(link => link !== sharedWithCarol)
+              .sort(alphabetical)
+
+            t.same(links, willBeForgotten)
+
+            async.parallel([
+              function aliceAndBob (done) {
+                collect(alice.objects.conversation({ with: bob.permalink }), done)
+              },
+              function aliceAndCarol (done) {
+                collect(alice.objects.conversation({ with: carol.permalink }), done)
+              }
+            ], function (err, conversations) {
+              if (err) throw err
+
+              t.equal(conversations[0].length, 0)
+              t.equal(conversations[1].length, 3)
+              friends.forEach(friend => friend.destroy())
+              t.end()
+            })
           })
         })
       })
@@ -1636,4 +1660,12 @@ test('node.abortUnsent', function (t) {
 
 function rethrow (err) {
   if (err) throw err
+}
+
+function alphabetical (a, b) {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+function arraysEqual (a, b) {
+  return a.length === b.length && a.every((item, i) => item === b[i])
 }

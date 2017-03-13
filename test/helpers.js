@@ -175,12 +175,21 @@ exports.send = function send (from, to, object, cb) {
   }
 
   object = object || { [TYPE]: 'blah', a: 1 }
-
-  from.signAndSend({
-    object: object,
+  const opts = {
     author: from._senderOpts,
     to: to._recipientOpts
-  }, function (err, result) {
+  }
+
+  let method
+  if (typeof object === 'string') {
+    opts.link = object
+    method = 'send'
+  } else {
+    opts.object = object
+    method = 'signAndSend'
+  }
+
+  from[method](opts, function (err, result) {
     if (err) throw err
 
     from.on('sent', onsent)
