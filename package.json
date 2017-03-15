@@ -11,7 +11,7 @@
     "doc": "./node_modules/.bin/jsdoc -d ../tradle-engine-docs -R README.md lib/*.js lib/dbs/*.js"
   },
   "author": "Mark Vayngrib <mark@tradle.io> (http://github.com/mvayngrib)",
-  "license": "MIT",
+  "license": "GPLv3",
   "dependencies": {
     "@tradle/bitcoinjs-lib": "^1.6.0",
     "@tradle/protocol": "2.3.0",
