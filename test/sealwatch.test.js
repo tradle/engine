@@ -19,7 +19,7 @@ const createSealer = require('../lib/sealer')
 const utils = require('../lib/utils')
 const Actions = require('../lib/actions')
 const helpers = require('./helpers')
-const network = require('../lib/networks/bitcoin').testnet
+const network = require('@tradle/bitcoin-adapter').testnet
 
 test('watch', function (t) {
   t.plan(3)

@@ -11,7 +11,8 @@ const Wallet = require('@tradle/simple-wallet')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
 const Node = require('../lib/node')
-const { testnet } = require('../lib/networks/bitcoin')
+// const { testnet } = require('../lib/networks/bitcoin')
+const { testnet } = require('@tradle/bitcoin-adapter')
 const names = [
   'alice', 'bob', 'carol',
   'david', 'eve', 'falstaff',
