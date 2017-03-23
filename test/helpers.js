@@ -5,6 +5,7 @@ const deepEqual = require('deep-equal')
 const leveldown = require('memdown')
 const changesFeed = require('changes-feed')
 const async = require('async')
+const randomName = require('random-name')
 const fakeWallet = require('@tradle/test-helpers').fakeWallet
 const Wallet = require('@tradle/simple-wallet')
 // const kiki = require('@tradle/kiki')
@@ -219,6 +220,32 @@ exports.resurrect = function (deadNode) {
     'networkName', 'blockchain', 'keeper', 'transactor', 'dir', 'leveldown',
     'identity', 'keys', 'name'
   ))
+}
+
+exports.genUsers = function genUsers (n, cb) {
+  const tmp = new Array(n).fill(0)
+
+  async.map(tmp, function iterator (blah, done) {
+    utils.newIdentity({ networkName: 'testnet' }, done)
+  }, function (err, results) {
+    if (err) return cb(err)
+
+    results.forEach(r => {
+      const first = randomName.first()
+      const last = randomName.last()
+      r.profile = {
+        name: {
+          firstName: first,
+          lastName: last,
+          formatted: first + ' ' + last
+        }
+      }
+
+      r.keys = r.keys.map(k => k.toJSON(true))
+    })
+
+    cb(null, results)
+  })
 }
 
 process.on('uncaughtException', function (err) {
