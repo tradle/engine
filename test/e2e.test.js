@@ -1316,6 +1316,58 @@ test('partials', function (t) {
   })
 })
 
+test('missing messages', function (t) {
+  contexts.nFriends(2, function (err, friends) {
+    if (err) throw err
+
+    const [alice, bob] = friends
+    alice._send = function (msg, recipientInfo, cb) {
+      const seq = msg.unserialized.seq
+      // drop even-numbered messages
+      if (seq % 2 === 0) return cb()
+
+      return bob.receive(msg, alice._recipientOpts, cb)
+    }
+
+    const msgs = new Array(20).fill(0).map((val, i) => {
+      return {
+        [TYPE]: 'something',
+        message: 'hey bob' + i
+      }
+    })
+
+    const to = bob._recipientOpts
+
+    let togo = 10
+    bob.on('message', function (msg) {
+      if (--togo) return
+
+      bob.objects.missingMessages({
+        from: alice.permalink,
+        gte: 10,
+        tip: 20
+      }, function (err, results) {
+        if (err) throw err
+
+        t.same(results, [10, 12, 14, 16, 18, 20])
+        t.end()
+        friends.forEach(friend => friend.destroy())
+      })
+    })
+
+    async.series(msgs.map(object => {
+      return done => {
+        alice.signAndSend({ to, object }, err => {
+          if (err) throw err
+
+          done()
+          // setTimeout(done, 100)
+        })
+      }
+    }), rethrow)
+  })
+})
+
 function rethrow (err) {
   if (err) throw err
 }
