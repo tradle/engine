@@ -1321,10 +1321,14 @@ test('missing messages', function (t) {
     if (err) throw err
 
     const [alice, bob] = friends
+    const skipped = []
     alice._send = function (msg, recipientInfo, cb) {
       const seq = msg.unserialized.seq
       // drop even-numbered messages
-      if (seq % 2 === 0) return cb()
+      if (seq % 2 === 1) {
+        skipped.push(seq)
+        return cb()
+      }
 
       return bob.receive(msg, alice._recipientOpts, cb)
     }
@@ -1344,12 +1348,12 @@ test('missing messages', function (t) {
 
       bob.objects.missingMessages({
         from: alice.permalink,
-        gte: 10,
+        gte: 0,
         tip: 20
       }, function (err, results) {
         if (err) throw err
 
-        t.same(results, [10, 12, 14, 16, 18, 20])
+        t.same(results, skipped.concat(20))
         t.end()
         friends.forEach(friend => friend.destroy())
       })
