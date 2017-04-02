@@ -1,3 +1,5 @@
+require('./env')
+
 const test = require('tape')
 const backoff = require('backoff')
 const memdown = require('memdown')
@@ -8,7 +10,7 @@ const collect = require('stream-collector')
 const controls = require('../lib/controls')
 const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
-const network = require('../lib/networks/bitcoin').testnet
+const network = require('@tradle/bitcoin-adapter').testnet
 const Partial = require('../lib/partial')
 const users = require('./fixtures/users')
 const {

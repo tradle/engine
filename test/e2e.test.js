@@ -1,4 +1,4 @@
-process.env.NODE_ENV = process.env.NODE_ENV || 'test'
+require('./env')
 
 // const WHY = require('why-is-node-running')
 const path = require('path')

@@ -1,3 +1,5 @@
+require('./env')
+
 const test = require('tape')
 const levelErrors = require('level-errors')
 const validator = require('../lib/validator')

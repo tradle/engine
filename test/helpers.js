@@ -1,18 +1,19 @@
 const crypto = require('crypto')
 const deepEqual = require('deep-equal')
-const leveldown = require('memdown')
+const LEVELDOWN = require('memdown')
 const changesFeed = require('changes-feed')
 const async = require('async')
 const randomName = require('random-name')
-const fakeWallet = require('@tradle/test-helpers').fakeWallet
+// const fakeWallet = require('@tradle/test-helpers').fakeWallet
 const Wallet = require('@tradle/simple-wallet')
+const { testnet } = require('@tradle/bitcoin-adapter')
 // const kiki = require('@tradle/kiki')
 // const nkey = require('nkey-ec')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
 const Node = require('../lib/node')
 // const { testnet } = require('../lib/networks/bitcoin')
-const { testnet } = require('@tradle/bitcoin-adapter')
+const fakeWallet = require('./wallet')
 const names = [
   'alice', 'bob', 'carol',
   'david', 'eve', 'falstaff',
@@ -38,27 +39,12 @@ exports.nextFeed = function nextFeed () {
   return changesFeed(helpers.nextDB())
 }
 
-exports.nextDB = function nextDB (opts) {
-  opts = opts || {}
-  if (!opts.leveldown) opts.db = leveldown
+exports.nextDB = function nextDB (opts={}) {
+  if (!opts.leveldown) opts.db = LEVELDOWN
   return utils.levelup(helpers.nextDBName(), opts)
 }
 
-exports.keeper = function () {
-  var db = helpers.nextDB()
-  // var map = {}
-  // db._memory = map
-  // db.on('batch', function (batch) {
-  //   console.log('put batch')
-  // })
-
-  // db.on('put', function (key, value) {
-  //   map[key] = value
-  //   console.log('put row', key)
-  // })
-
-  return db
-}
+exports.keeper = exports.nextDB
 
 exports.dummyIdentity = function (authorLink) {
   return {
@@ -73,18 +59,23 @@ exports.dummyIdentity = function (authorLink) {
 
 exports.transactor = function (key, blockchain) {
   const wallet = helpers.wallet(key, blockchain)
-  const transactor = Wallet.transactor({ wallet })
-  transactor.blockchain = wallet.blockchain
+  // fake blockchain
+  blockchain = wallet.blockchain
+  const transactor = testnet.createTransactor({ privateKey: key, blockchain })
+  // const transactor = Wallet.transactor({ wallet })
+  transactor.blockchain = blockchain
+  transactor.network = testnet
   return transactor
 }
 
-exports.wallet = function (key, blockchain) {
+exports.wallet = function (key, blockchain, network=DEFAULT_NETWORK) {
   var unspents = []
   for (var i = 0; i < 20; i++) {
     unspents.push(100000)
   }
 
   return fakeWallet({
+    network: network,
     blockchain: blockchain,
     unspents: unspents,
     priv: key
@@ -152,17 +143,24 @@ exports.userToOpts = function userToOpts (user, name) {
 }
 
 exports.createNode = function createNode (opts) {
-  const network = opts.network || DEFAULT_NETWORK
-  const priv = utils.chainKey(opts.keys).privKeyString
-  const transactor = opts.transactor || helpers.transactor(priv, opts.blockchain)
-  const blockchain = opts.blockchain || transactor.blockchain
+  const {
+    network=DEFAULT_NETWORK,
+    blockchain,
+    keys,
+    leveldown=LEVELDOWN
+  } = opts
+
+  const keeper = opts.keeper || helpers.keeper()
+  const privateKey = utils.chainKey(opts.keys).privKeyString
+  const transactor = opts.transactor || helpers.transactor(privateKey, blockchain)
+  const dir = opts.dir || helpers.nextDir()
   opts = utils.extend(opts, {
-    dir: opts.dir || helpers.nextDir(),
-    keeper: helpers.keeper(),
-    network: network,
-    transactor: transactor,
-    blockchain: blockchain,
-    leveldown: opts.leveldown || leveldown,
+    dir,
+    keeper,
+    network,
+    blockchain: transactor.blockchain,
+    transactor,
+    leveldown
   })
 
   return new Node(opts)

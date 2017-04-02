@@ -1,7 +1,10 @@
+require('./env')
+
 const test = require('tape')
 const extend = require('xtend')
 const async = require('async')
 const protocol = require('@tradle/protocol')
+const { testnet } = require('@tradle/bitcoin-adapter')
 // const createChainTracker = require('chain-tracker')
 const constants = require('../lib/constants')
 const watchTypes = constants.watchType
@@ -19,7 +22,6 @@ const createSealer = require('../lib/sealer')
 const utils = require('../lib/utils')
 const Actions = require('../lib/actions')
 const helpers = require('./helpers')
-const network = require('@tradle/bitcoin-adapter').testnet
 
 test('watch', function (t) {
   t.plan(3)
@@ -45,15 +47,17 @@ test('watch', function (t) {
 
   const alice = 'alice'
   const authorLink = 'bob'
+  // const networkName = 'testnet'
+  const changes = helpers.nextFeed()
+  const actions = Actions({ changes })
+
   const bob = helpers.dummyIdentity(authorLink)
   const bobKey = protocol.genECKey()
-  const networkName = 'testnet'
+  const network = testnet
   const bobKeyWIF = network.privToWIF(bobKey.priv)
-
-  const changes = helpers.nextFeed()
-  const actions = Actions({ changes: changes })
-
   const transactor = helpers.transactor(bobKeyWIF)
+  const { blockchain } = transactor
+
   // const chaintracker =  createChainTracker({
   //   db: helpers.nextDB({ valueEncoding: 'json' }),
   //   blockchain: transactor.blockchain,
@@ -62,7 +66,7 @@ test('watch', function (t) {
   // })
 
   const watchDB = createWatchDB({
-    changes: changes,
+    changes,
     db: helpers.nextDB(),
     keeper: keeper
   })
@@ -70,8 +74,8 @@ test('watch', function (t) {
   const sealwatch = createSealWatch({
     actions,
     // chaintracker: chaintracker,
-    blockchain: transactor.blockchain,
     network,
+    blockchain,
     db: helpers.nextDB(),
     watches: watchDB,
     objects: {}, // don't actually need it yet
@@ -144,14 +148,15 @@ test('batch', function (t) {
   const alice = 'alice'
   const authorLink = 'bob'
   const bob = helpers.dummyIdentity(authorLink)
+  const network = testnet
   const bobKey = protocol.genECKey()
-  const networkName = 'testnet'
-  const bobKeyWIF = network.privToWIF(bobKey.priv, networkName)
-
+  const bobKeyWIF = network.privToWIF(bobKey.priv)
   const changes = helpers.nextFeed()
   const actions = Actions({ changes: changes })
 
   const transactor = helpers.transactor(bobKeyWIF)
+  const { blockchain } = transactor
+
   // const chaintracker =  createChainTracker({
   //   db: helpers.nextDB({ valueEncoding: 'json' }),
   //   blockchain: transactor.blockchain,
@@ -168,8 +173,8 @@ test('batch', function (t) {
   const sealwatch = createSealWatch({
     actions,
     // chaintracker: chaintracker,
-    blockchain: transactor.blockchain,
     network,
+    blockchain,
     db: helpers.nextDB(),
     watches: watchDB,
     objects: {}, // don't actually need it yet
@@ -182,7 +187,6 @@ test('batch', function (t) {
   sealwatch.on('error', rethrow)
   sealwatch.start()
 
-  const blockchain = transactor.blockchain
   const txs = blockchain.addresses.transactions
   let total = 0
   blockchain.addresses.transactions = function (txs, cb) {

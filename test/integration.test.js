@@ -1,3 +1,5 @@
+require('./env')
+
 // const WHY = require('why-is-node-running')
 const test = require('tape')
 const Sendy = require('sendy')

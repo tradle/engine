@@ -1,3 +1,5 @@
+require('./env')
+
 const test = require('tape')
 const extend = require('xtend')
 const async = require('async')
