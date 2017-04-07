@@ -29,7 +29,7 @@
     "json-stable-stringify": "^1.0.1",
     "level-errors": "^1.0.4",
     "level-live-stream": "1.4.11",
-    "levelup": "^1.3.1",
+    "levelup": "1.3.3",
     "lexicographic-integer": "^1.1.0",
     "map-stream": "0.0.7",
     "merkle-proofs": "1.0.3",
