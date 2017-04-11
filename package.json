@@ -1,6 +1,6 @@
 {
   "name": "@tradle/engine",
-  "version": "4.8.2",
+  "version": "4.9.0",
   "description": "",
   "main": "index.js",
   "scripts": {
