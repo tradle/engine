@@ -151,7 +151,7 @@ exports.createNode = function createNode (opts) {
   } = opts
 
   const keeper = opts.keeper || helpers.keeper()
-  const privateKey = utils.chainKey(opts.keys).privKeyString
+  const privateKey = utils.chainKey(opts.keys, network.chain).privKeyString
   const transactor = opts.transactor || helpers.transactor(privateKey, blockchain)
   const dir = opts.dir || helpers.nextDir()
   opts = utils.extend(opts, {
