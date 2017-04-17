@@ -43,6 +43,8 @@ const LONG_BACKOFF_OPTS = {
   maxDelay: 60 * 1000 * 1000 * 1000
 }
 
+const { blocktime } = helpers
+
 retrystream.DEFAULT_BACKOFF_OPTS =
 createSender.DEFAULT_BACKOFF_OPTS =
 createSealer.DEFAULT_BACKOFF_OPTS = SHORT_BACKOFF_OPTS
@@ -267,7 +269,7 @@ test('do receive messages carrying already known objects', function (t) {
 })
 
 test('sender seals', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(blocktime * 10)
   contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
     if (err) throw err
 
@@ -287,7 +289,7 @@ test('sender seals', function (t) {
 })
 
 test('receiver seals', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(blocktime * 10)
   contexts.twoFriendsSentReceivedSealed({ sealer: 'receiver' }, function (err, context) {
     if (err) throw err
 
@@ -307,7 +309,7 @@ test('receiver seals', function (t) {
 })
 
 test('`readseal` emitted once', function (t) {
-  t.timeoutAfter(2000)
+  t.timeoutAfter(5000)
   contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
     const dude = context.sender
     for (var i = 0; i < dude.confirmedAfter; i++) {
@@ -329,59 +331,61 @@ test('`readseal` emitted once', function (t) {
   })
 })
 
-test('detect next version', function (t) {
-  // t.timeoutAfter(1000)
-  let v1 = {
-    [TYPE]: 'blah',
-    a: 1
-  }
+if (helpers.network.blockchain !== 'ethereum') {
+  test('detect next version', function (t) {
+    // t.timeoutAfter(1000)
+    let v1 = {
+      [TYPE]: 'blah',
+      a: 1
+    }
 
-  contexts.twoFriendsSentReceivedSealed({ object: v1, sealer: 'sender' }, function (err, context) {
-    if (err) throw err
-
-    v1 = context.object.object // signed
-    const v1link = protocol.linkString(v1)
-    let v2 = protocol.nextVersion(v1, v1link)
-    v2.a = 2
-
-    const newSealer = context.sender
-    const newAuditor = context.receiver
-    newSealer.createObject({ object: v2 }, function (err, result) {
+    contexts.twoFriendsSentReceivedSealed({ object: v1, sealer: 'sender' }, function (err, context) {
       if (err) throw err
 
-      v2 = result.object // signed
-      // utils.logify(utils, 'pubKeyToAddress', true)
-      let seal
-      newSealer.seal({ object: v2 }, rethrow)
-      newSealer.on('wroteseal', _seal => seal = _seal)
-      newSealer.on('readseal', done)
+      v1 = context.object.object // signed
+      const v1link = protocol.linkString(v1)
+      let v2 = protocol.nextVersion(v1, v1link)
+      v2.a = 2
 
-      newAuditor.watchNextVersion({
-        link: v1link,
-        basePubKey: newSealer.chainPubKey
-      }, rethrow)
+      const newSealer = context.sender
+      const newAuditor = context.receiver
+      newSealer.createObject({ object: v2 }, function (err, result) {
+        if (err) throw err
 
-      newAuditor.on('newversion', _seal => {
-        t.equal(_seal.sealPrevAddress, seal.sealPrevAddress)
-        t.equal(_seal.prevLink, seal.prevLink)
-        done()
+        v2 = result.object // signed
+        // utils.logify(utils, 'pubKeyToAddress', true)
+        let seal
+        newSealer.seal({ object: v2 }, rethrow)
+        newSealer.on('wroteseal', _seal => seal = _seal)
+        newSealer.on('readseal', done)
+
+        newAuditor.watchNextVersion({
+          link: v1link,
+          basePubKey: newSealer.chainPubKey
+        }, rethrow)
+
+        newAuditor.on('newversion', _seal => {
+          t.equal(_seal.sealPrevAddress, seal.sealPrevAddress)
+          t.equal(_seal.prevLink, seal.prevLink)
+          done()
+        })
+
+        const sealerInterval = setInterval(() => newSealer.sync(), 100).unref()
+        const auditorInterval = setInterval(() => newAuditor.sync(), 100).unref()
+        let togo = 2
+
+        function done () {
+          if (--togo) return
+
+          clearInterval(sealerInterval)
+          clearInterval(auditorInterval)
+          context.destroy()
+          t.end()
+        }
       })
-
-      const sealerInterval = setInterval(() => newSealer.sync(), 100).unref()
-      const auditorInterval = setInterval(() => newAuditor.sync(), 100).unref()
-      let togo = 2
-
-      function done () {
-        if (--togo) return
-
-        clearInterval(sealerInterval)
-        clearInterval(auditorInterval)
-        context.destroy()
-        t.end()
-      }
     })
   })
-})
+}
 
 test('conversation', function (t) {
   contexts.nFriends(3, function (err, friends) {
@@ -439,7 +443,6 @@ test('conversation', function (t) {
 })
 
 test('delete watch after X confirmed', function (t) {
-  t.timeoutAfter(5000)
   const confirmedAfter = defaults.confirmedAfter
   defaults.confirmedAfter = 3
 
@@ -462,29 +465,27 @@ test('delete watch after X confirmed', function (t) {
     }), function (err) {
       if (err) throw err
 
-      makeBlocks()
-      async.parallel(context.friends.map(node => {
-        return done => node.sync(done)
-      }), function (err) {
-        if (err) throw err
-
+      mintBlocks(defaults.confirmedAfter, function () {
         async.parallel(context.friends.map(node => {
-          return done => checkWatch(node, 0, done)
+          return done => node.sync(done)
         }), function (err) {
           if (err) throw err
 
-          defaults.confirmedAfter = confirmedAfter
-          context.destroy()
-          t.end()
+          async.parallel(context.friends.map(node => {
+            return done => checkWatch(node, 0, done)
+          }), function (err) {
+            if (err) throw err
+
+            defaults.confirmedAfter = confirmedAfter
+            context.destroy()
+            t.end()
+          })
         })
       })
     })
 
-    function makeBlocks () {
-      // advance blockchain till we have enough confirmations
-      for (var i = 0; i < defaults.confirmedAfter; i++) {
-        blockchain._advanceToNextBlock()
-      }
+    function mintBlocks (n, cb) {
+      helpers.mintBlocks({ blockchain, n }, cb)
     }
 
     function checkWatch (node, expected, cb) {

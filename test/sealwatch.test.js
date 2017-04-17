@@ -4,7 +4,7 @@ const test = require('tape')
 const extend = require('xtend')
 const async = require('async')
 const protocol = require('@tradle/protocol')
-const { testnet } = require('@tradle/bitcoin-adapter')
+// const network = require('@tradle/bitcoin-adapter').testnet
 // const createChainTracker = require('chain-tracker')
 const constants = require('../lib/constants')
 const watchTypes = constants.watchType
@@ -22,8 +22,10 @@ const createSealer = require('../lib/sealer')
 const utils = require('../lib/utils')
 const Actions = require('../lib/actions')
 const helpers = require('./helpers')
+const { network, blocktime } = helpers
+const users = require('./fixtures/users')
 
-test('watch', function (t) {
+test.only('watch', function (t) {
   t.plan(3)
 
   const obj = {
@@ -51,19 +53,11 @@ test('watch', function (t) {
   const changes = helpers.nextFeed()
   const actions = Actions({ changes })
 
-  const bob = helpers.dummyIdentity(authorLink)
-  const bobKey = protocol.genECKey()
-  const network = testnet
-  const bobKeyWIF = network.privToWIF(bobKey.priv)
-  const transactor = helpers.transactor(bobKeyWIF)
-  const { blockchain } = transactor
-
-  // const chaintracker =  createChainTracker({
-  //   db: helpers.nextDB({ valueEncoding: 'json' }),
-  //   blockchain: transactor.blockchain,
-  //   networkName: networkName,
-  //   confirmedAfter: 10 // stop tracking a tx after 10 blocks
-  // })
+  // const bob = helpers.dummyIdentity(authorLink)
+  // const bobKey = protocol.genECKey()
+  const bob = users[0]
+  const blockchain = helpers.blockchain()
+  const transactor = helpers.transactor({ keys: bob.keys, blockchain })
 
   const watchDB = createWatchDB({
     changes,
@@ -86,6 +80,8 @@ test('watch', function (t) {
   sealwatch.on('error', rethrow)
   sealwatch.start()
 
+  // const basePubKey = network.generateKey()
+  // const sealPubKey = network.generateKey()
   const basePubKey = protocol.genECKey()
   const sealPubKey = protocol.genECKey()
 
@@ -109,18 +105,24 @@ test('watch', function (t) {
 
   const createdActions = {}
 
-  actions.on('newwatch', checkAction)
-  actions.on('readseal', checkAction)
+  actions.on('newwatch', recordAction)
+  actions.on('readseal', recordAction)
 
   // give time for duplicates to arrive if there are any
   setTimeout(function () {
+    t.ok(createdActions.newwatch)
+    t.ok(createdActions.readseal)
+
     sealwatch.stop()
+    if (blockchain.close) blockchain.close()
+    if (transactor.close) transactor.close()
+
     t.pass()
     t.end()
-  }, 1000)
+  }, blocktime * 4)
 
-  function checkAction (action) {
-    t.notOk(createdActions[action.topic])
+  function recordAction (action) {
+    createdActions[action.topic] = true
   }
 })
 
@@ -147,21 +149,14 @@ test('batch', function (t) {
 
   const alice = 'alice'
   const authorLink = 'bob'
-  const bob = helpers.dummyIdentity(authorLink)
-  const network = testnet
-  const bobKey = protocol.genECKey()
+  const bob = users[0]
+  // const bob = helpers.dummyIdentity(authorLink)
+  // const bobKey = protocol.genECKey()
   const changes = helpers.nextFeed()
   const actions = Actions({ changes: changes })
 
-  const transactor = helpers.transactor(bobKey.priv)
-  const { blockchain } = transactor
-
-  // const chaintracker =  createChainTracker({
-  //   db: helpers.nextDB({ valueEncoding: 'json' }),
-  //   blockchain: transactor.blockchain,
-  //   networkName: networkName,
-  //   confirmedAfter: 10 // stop tracking a tx after 10 blocks
-  // })
+  const transactor = helpers.transactor(bob)
+  const blockchain = network.createBlockchainAPI()
 
   const watchDB = createWatchDB({
     changes: changes,
@@ -194,6 +189,9 @@ test('batch', function (t) {
     cb(null, [])
     if (total === numTxs) {
       sealwatch.stop()
+      if (blockchain.close) blockchain.close()
+      if (transactor.close) transactor.close()
+
       t.end()
     }
   }
@@ -219,9 +217,7 @@ test('batch', function (t) {
         }
       ]
     }, done)
-  }, function (err) {
-    if (err) throw err
-  })
+  }, rethrow)
 })
 
 function rethrow (err) {

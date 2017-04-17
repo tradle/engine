@@ -4,16 +4,14 @@ const LEVELDOWN = require('memdown')
 const changesFeed = require('changes-feed')
 const async = require('async')
 const randomName = require('random-name')
-// const fakeWallet = require('@tradle/test-helpers').fakeWallet
-const Wallet = require('@tradle/simple-wallet')
-const { testnet } = require('@tradle/bitcoin-adapter')
+
+// const network = require('@tradle/bitcoin-adapter').testnet
 // const kiki = require('@tradle/kiki')
 // const nkey = require('nkey-ec')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
 const Node = require('../lib/node')
 // const { testnet } = require('../lib/networks/bitcoin')
-const fakeWallet = require('./wallet')
 const names = [
   'alice', 'bob', 'carol',
   'david', 'eve', 'falstaff',
@@ -24,7 +22,12 @@ const names = [
 
 const TYPE = constants.TYPE
 const IDENTITY_TYPE = constants.TYPES.IDENTITY
-const DEFAULT_NETWORK = testnet
+const { BLOCKCHAIN='bitcoin' } = process.env
+const networkHelpers = BLOCKCHAIN === 'bitcoin'
+  ? require('./bitcoin-helpers')
+  : require('./ethereum-helpers')
+
+const { network, createBlockchainAPI } = networkHelpers
 const helpers = exports
 const noop = function () {}
 let dbCounter = 0
@@ -55,33 +58,6 @@ exports.dummyIdentity = function (authorLink) {
     link: authorLink,
     permalink: authorLink
   }
-}
-
-exports.transactor = function (key, blockchain) {
-  if (Buffer.isBuffer(key)) key = testnet.privToWIF(key)
-
-  const wallet = helpers.wallet(key, blockchain)
-  // fake blockchain
-  blockchain = wallet.blockchain
-  const transactor = testnet.createTransactor({ privateKey: key, blockchain })
-  // const transactor = Wallet.transactor({ wallet })
-  transactor.blockchain = blockchain
-  transactor.network = testnet
-  return transactor
-}
-
-exports.wallet = function (key, blockchain, network=DEFAULT_NETWORK) {
-  var unspents = []
-  for (var i = 0; i < 20; i++) {
-    unspents.push(100000)
-  }
-
-  return fakeWallet({
-    network: network,
-    blockchain: blockchain,
-    unspents: unspents,
-    priv: key
-  })
 }
 
 exports.pairs = function pairs (arr) {
@@ -144,23 +120,43 @@ exports.userToOpts = function userToOpts (user, name) {
   }
 }
 
+exports.transactor = function ({ keys, blockchain }) {
+  let privateKey
+  keys.some(key => {
+    const json = key.toJSON ? key.toJSON(true) : key
+    if (json.purpose === 'messaging' &&
+      json.type === network.blockchain &&
+      json.networkName === network.name) {
+      return privateKey = json
+    }
+  })
+
+  return networkHelpers.transactor({ privateKey, blockchain })
+}
+
+exports.blockchain = networkHelpers.blockchain
+exports.network = networkHelpers.network
+exports.blocktime = networkHelpers.blocktime || 500
+exports.mintBlocks = networkHelpers.mintBlocks
+
 exports.createNode = function createNode (opts) {
-  const {
-    network=DEFAULT_NETWORK,
+  let {
     blockchain,
     keys,
     leveldown=LEVELDOWN
   } = opts
 
+  if (!blockchain) blockchain = networkHelpers.blockchain()
+
   const keeper = opts.keeper || helpers.keeper()
-  const privateKey = utils.chainKey(opts.keys, network.chain).privKeyString
-  const transactor = opts.transactor || helpers.transactor(privateKey, blockchain)
+  const privateKey = utils.chainKey(opts.keys, network.blockchain).privKeyString
+  const transactor = opts.transactor || helpers.transactor({ keys, blockchain })
   const dir = opts.dir || helpers.nextDir()
   opts = utils.extend(opts, {
     dir,
     keeper,
     network,
-    blockchain: transactor.blockchain,
+    blockchain,
     transactor,
     leveldown
   })
@@ -226,7 +222,7 @@ exports.nextDir = function nextDir () {
 
 exports.resurrect = function (deadNode) {
   return helpers.createNode(utils.pick(deadNode,
-    'networkName', 'blockchain', 'keeper', 'transactor', 'dir', 'leveldown',
+    'networkName', 'keeper', 'dir', 'leveldown',
     'identity', 'keys', 'name'
   ))
 }
@@ -235,7 +231,12 @@ exports.genUsers = function genUsers (n, cb) {
   const tmp = new Array(n).fill(0)
 
   async.map(tmp, function iterator (blah, done) {
-    utils.newIdentity({ networkName: 'testnet' }, done)
+    utils.newIdentity({
+      networks: {
+        bitcoin: 'testnet',
+        ethereum: 'ropsten'
+      }
+    }, done)
   }, function (err, results) {
     if (err) return cb(err)
 
