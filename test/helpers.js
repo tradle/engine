@@ -58,6 +58,8 @@ exports.dummyIdentity = function (authorLink) {
 }
 
 exports.transactor = function (key, blockchain) {
+  if (Buffer.isBuffer(key)) key = testnet.privToWIF(key)
+
   const wallet = helpers.wallet(key, blockchain)
   // fake blockchain
   blockchain = wallet.blockchain

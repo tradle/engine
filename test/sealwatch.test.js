@@ -150,11 +150,10 @@ test('batch', function (t) {
   const bob = helpers.dummyIdentity(authorLink)
   const network = testnet
   const bobKey = protocol.genECKey()
-  const bobKeyWIF = network.privToWIF(bobKey.priv)
   const changes = helpers.nextFeed()
   const actions = Actions({ changes: changes })
 
-  const transactor = helpers.transactor(bobKeyWIF)
+  const transactor = helpers.transactor(bobKey.priv)
   const { blockchain } = transactor
 
   // const chaintracker =  createChainTracker({
