@@ -5,8 +5,8 @@ A blockchain adapter consists of several APIs that `@tradle/engine` calls for re
 
 Existing adapters:
 
-[bitcoin](https://github.com/tradle/bitcoin-adapter)
-[ethereum](https://github.com/tradle/ethereum-adapter)
+- [bitcoin](https://github.com/tradle/bitcoin-adapter)
+- [ethereum](https://github.com/tradle/ethereum-adapter)
 
 ## Network
 
@@ -32,16 +32,20 @@ new tradle.node({
 //  ...
   blockchain: {
     transactions: {
+      // fetch transactions by id
       get: function (txIds, cb) {
         // ...
         // see below for Transaction Object format
         cb(null, [txObjects])
       }
     },
-    addresses: function (addresses, [height], cb) {
-      // ...
-      // see below for Transaction Object format
-      cb(null, [txObjects])
+    addresses: {
+      // fetch transactions by to/from addresses
+      transactions: function (addresses, [height], cb) {
+        // ...
+        // see below for Transaction Object format
+        cb(null, [txObjects])
+      }
     }
   }
 // ...
@@ -74,7 +78,7 @@ new tradle.node({
   transactor: {
     send: function (opts, cb) {
       console.log(opts)
-      // araay of pairs of output address and amount
+      // array of output address and amount pairs
       // [{ address, amount }, ...]
       // ...
       // call back with the txId of the created transaction
