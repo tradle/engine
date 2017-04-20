@@ -9,3 +9,5 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - g++-4.8
+install:
+  - "travis_retry yarn global add forever"
