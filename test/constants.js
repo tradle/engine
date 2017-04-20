@@ -1,0 +1,1 @@
+exports.blocktime = 500

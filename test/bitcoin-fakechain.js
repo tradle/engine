@@ -1,17 +1,21 @@
+const { EventEmitter } = require('events')
 const crypto = require('crypto')
+const extend = require('xtend/mutable')
 const Wallet = require('@tradle/simple-wallet')
 const bitcoin = require('@tradle/bitcoinjs-lib')
 const typeforce = require('typeforce')
 const utils = require('@tradle/utils')
 const { testnet } = require('@tradle/bitcoin-adapter')
+const constants = require('./constants')
 
 module.exports = function fakeBitcoinBlockchain (opts) {
   typeforce({
     unspents: 'Array',
-    network: 'Object'
+    network: 'Object',
+    blocktime: '?Number'
   }, opts)
 
-  const { network } = opts
+  const { network, blocktime=constants.blocktime } = opts
   const unspents = []
   opts.unspents.forEach(({ address, amounts }) => {
     const tx = fund(address, amounts)
@@ -26,30 +30,26 @@ module.exports = function fakeBitcoinBlockchain (opts) {
     })
   })
 
-  const commonBlockchain = createFakeChain({
+  const fakechain = createFakeChain({
     network: bitcoin.networks[network.name],
-    unspents
+    unspents,
+    blocktime
   })
 
-  return network.wrapCommonBlockchain(commonBlockchain)
-
-  // const w = new Wallet({ networkName: network.name, blockchain, priv })
-  // const tx = fund(w.address, walletUnspents)
-  // tx.outs.forEach(function (o, i) {
-  //   unspents.push({
-  //     txId: tx.getId(),
-  //     confirmations: 6,
-  //     address: w.addressString,
-  //     value: o.value,
-  //     vout: i
-  //   })
-  // })
+  const wrapper = extend(new EventEmitter(), network.wrapCommonBlockchain(fakechain))
+  fakechain.on('block', block => wrapper.emit('block', block))
+  return wrapper
 }
 
-function createFakeChain ({ network, unspents }) {
+function createFakeChain ({ network, unspents, blocktime }) {
   const ADDR_CACHE = {}
   const blocks = []
-  return {
+  setInterval(function () {
+    addFakeBlock(blocks)
+    emitter.emit('block', { blockHeight: blocks.length - 1 })
+  }, blocktime).unref()
+
+  const emitter = extend(new EventEmitter(), {
     info: function (cb) {
       process.nextTick(function () {
         const last = blocks[blocks.length - 1]
@@ -164,11 +164,10 @@ function createFakeChain ({ network, unspents }) {
         b.transactions.push(bitcoin.Transaction.fromHex(tx))
         sendTx(tx, cb)
       }
-    },
-    _advanceToNextBlock: function () {
-      addFakeBlock(blocks)
     }
-  }
+  })
+
+  return emitter
 }
 
 function fund (address, amounts) {

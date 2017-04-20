@@ -27,7 +27,8 @@ const networkHelpers = BLOCKCHAIN === 'bitcoin'
   ? require('./bitcoin-helpers')
   : require('./ethereum-helpers')
 
-const { network, createBlockchainAPI } = networkHelpers
+const { blocktime } = require('./constants')
+const { network } = networkHelpers
 const helpers = exports
 const noop = function () {}
 let dbCounter = 0
@@ -136,21 +137,22 @@ exports.transactor = function ({ keys, blockchain }) {
 
 exports.blockchain = networkHelpers.blockchain
 exports.network = networkHelpers.network
-exports.blocktime = networkHelpers.blocktime || 500
-exports.mintBlocks = networkHelpers.mintBlocks
+exports.blocktime = blocktime
+// exports.mintBlocks = networkHelpers.mintBlocks
 
 exports.createNode = function createNode (opts) {
   let {
     blockchain,
     keys,
-    leveldown=LEVELDOWN
+    leveldown=LEVELDOWN,
+    syncInterval=blocktime
   } = opts
-
-  if (!blockchain) blockchain = networkHelpers.blockchain()
 
   const keeper = opts.keeper || helpers.keeper()
   const privateKey = utils.chainKey(opts.keys, network.blockchain).privKeyString
   const transactor = opts.transactor || helpers.transactor({ keys, blockchain })
+  if (!blockchain) blockchain = transactor.blockchain
+
   const dir = opts.dir || helpers.nextDir()
   opts = utils.extend(opts, {
     dir,
@@ -158,7 +160,8 @@ exports.createNode = function createNode (opts) {
     network,
     blockchain,
     transactor,
-    leveldown
+    leveldown,
+    syncInterval
   })
 
   return new Node(opts)

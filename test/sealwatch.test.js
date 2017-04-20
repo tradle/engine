@@ -25,7 +25,7 @@ const helpers = require('./helpers')
 const { network, blocktime } = helpers
 const users = require('./fixtures/users')
 
-test.only('watch', function (t) {
+test('watch', function (t) {
   t.plan(3)
 
   const obj = {
@@ -56,8 +56,8 @@ test.only('watch', function (t) {
   // const bob = helpers.dummyIdentity(authorLink)
   // const bobKey = protocol.genECKey()
   const bob = users[0]
-  const blockchain = helpers.blockchain()
-  const transactor = helpers.transactor({ keys: bob.keys, blockchain })
+  const transactor = helpers.transactor({ keys: bob.keys })
+  const { blockchain } = transactor
 
   const watchDB = createWatchDB({
     changes,
@@ -80,8 +80,6 @@ test.only('watch', function (t) {
   sealwatch.on('error', rethrow)
   sealwatch.start()
 
-  // const basePubKey = network.generateKey()
-  // const sealPubKey = network.generateKey()
   const basePubKey = protocol.genECKey()
   const sealPubKey = protocol.genECKey()
 
@@ -156,7 +154,7 @@ test('batch', function (t) {
   const actions = Actions({ changes: changes })
 
   const transactor = helpers.transactor(bob)
-  const blockchain = network.createBlockchainAPI()
+  const { blockchain } = transactor
 
   const watchDB = createWatchDB({
     changes: changes,

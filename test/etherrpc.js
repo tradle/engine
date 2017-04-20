@@ -1,6 +1,7 @@
 const TestRPC = require('ethereumjs-testrpc')
 const users = require('./fixtures/users')
-const { network, constants, port, blocktime } = require('./ethereum-helpers')
+const { blocktime } = require('./constants')
+const { network, constants, port } = require('./ethereum-helpers')
 const server = TestRPC.server({
   network_id: constants.chainId,
   blocktime: blocktime / 1000,

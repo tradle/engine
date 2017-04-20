@@ -1,7 +1,7 @@
 const async = require('async')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE
-const users = require('./fixtures/users')
+let users = require('./fixtures/users')
 const helpers = require('./helpers')
 const contexts = exports
 
@@ -10,7 +10,9 @@ exports.nUsers = function nUsers (n) {
   if (users.length < n) throw new Error('not enough users in fixtures')
   if (helpers.names.length < n) throw new Error('not enough names in fixtures')
 
-  return users.slice(0, n).map((user, i) => {
+  const batch = users.slice(0, n)
+  users = users.slice(n)
+  return batch.slice(0, n).map((user, i) => {
     const opts = helpers.userToOpts(user, helpers.names[i])
     opts.blockchain = blockchain
 
