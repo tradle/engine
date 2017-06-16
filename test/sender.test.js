@@ -39,6 +39,7 @@ test('try again', function (t) {
   const objs = [
     {
       [SEQ]: 0,
+      time: new Date('2020-01-01').getTime(),
       [TYPE]: MESSAGE_TYPE,
       recipientPubKey: alicePubKey,
       object: {
@@ -53,6 +54,7 @@ test('try again', function (t) {
     },
     {
       [SEQ]: 0,
+      time: new Date('2020-01-01').getTime(),
       [TYPE]: MESSAGE_TYPE,
       recipientPubKey: alicePubKey,
       object: {
@@ -138,6 +140,7 @@ test('try again', function (t) {
 
       const obj = {
         [SEQ]: 0,
+        time: new Date('2020-01-01').getTime(),
         [TYPE]: MESSAGE_TYPE,
         recipientPubKey: alicePubKey,
         object: {
