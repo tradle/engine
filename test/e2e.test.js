@@ -25,6 +25,7 @@ const createSender = require('../lib/sender')
 const createMsgMetaDB = require('../lib/dbs/msgMeta')
 const constants = require('../lib/constants')
 const Partial = require('../lib/partial')
+const Errors = require('../lib/errors')
 const users = require('./fixtures/users')
 const PREVLINK = constants.PREVLINK
 const PERMALINK = constants.PERMALINK
@@ -1369,6 +1370,54 @@ test('missing messages', function (t) {
         })
       }
     }), rethrow)
+  })
+})
+
+test('abortMessage', function (t) {
+  contexts.nFriends(2, function (err, friends) {
+    if (err) throw err
+
+    helpers.connect(friends)
+    const [alice, bob] = friends
+    const skipped = []
+    const seqs = [0, 1, 2, 3]
+    const toSend = seqs.slice()
+
+    alice._send = function (msg, recipientInfo, cb) {
+      const seq = msg.unserialized.seq
+      if (seq % 2 === 0) {
+        cb(new Errors.WillNotSend())
+      } else {
+        cb()
+      }
+    }
+
+    alice.on('sent', function (msg) {
+      const seq = msg.object[SEQ]
+      t.equal(seq % 2, 1)
+      if (seq === seqs[seqs.length - 1]) {
+        t.end()
+      }
+    })
+
+    function sendNext () {
+      if (!toSend.length) return
+
+      const seq = toSend.shift()
+      alice.signAndSend({
+        to: bob._recipientOpts,
+        object: {
+          [TYPE]: 'tradle.SimpleMessage',
+          message: `hey bob ${seq}`
+        }
+      }, function (err) {
+        if (err) throw err
+
+        sendNext()
+      })
+    }
+
+    sendNext()
   })
 })
 
