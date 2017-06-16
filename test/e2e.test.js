@@ -4,6 +4,7 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'test'
 
 // const WHY = require('why-is-node-running')
 const path = require('path')
+const { EventEmitter } = require('events')
 const deepEqual = require('deep-equal')
 const test = require('tape')
 const extend = require('xtend')
@@ -1418,6 +1419,197 @@ test('abortMessage', function (t) {
     }
 
     sendNext()
+  })
+})
+
+test('abortMessage from _send', function (t) {
+  contexts.nFriends(2, function (err, friends) {
+    if (err) throw err
+
+    helpers.connect(friends)
+    const [alice, bob] = friends
+    const skipped = []
+    const seqs = [0, 1, 2, 3]
+    const toSend = seqs.slice()
+
+    alice._send = function (msg, recipientInfo, cb) {
+      const seq = msg.unserialized.seq
+      if (seq % 2 === 0) {
+        cb(new Errors.WillNotSend())
+      } else {
+        cb()
+      }
+    }
+
+    alice.on('sent', function (msg) {
+      const seq = msg.object[SEQ]
+      t.equal(seq % 2, 1)
+      if (seq === seqs[seqs.length - 1]) {
+        t.end()
+      }
+    })
+
+    function sendNext () {
+      if (!toSend.length) return
+
+      const seq = toSend.shift()
+      alice.signAndSend({
+        to: bob._recipientOpts,
+        object: {
+          [TYPE]: 'tradle.SimpleMessage',
+          message: `hey bob ${seq}`
+        }
+      }, function (err) {
+        if (err) throw err
+
+        sendNext()
+      })
+    }
+
+    sendNext()
+  })
+})
+
+test('node.abortMessages', function (t) {
+  contexts.nFriends(2, function (err, friends) {
+    if (err) throw err
+
+    helpers.connect(friends)
+    const [alice, bob] = friends
+    const skipped = []
+    const seqs = [0, 1, 2, 3, 4]
+    const toSend = seqs.slice()
+    const ee = new EventEmitter()
+    let ready = false
+
+    alice._send = function (msg, recipientInfo, cb) {
+      if (msg.unserialized.seq === 0) {
+        if (!ready) return ee.once('ready', abortStuff)
+
+        abortStuff()
+      } else {
+        cb()
+      }
+
+      function abortStuff () {
+        const toAbort = stubs.filter(({ to, link }, i) => i % 2 === 1)
+        alice.abortMessages(toAbort, function (err) {
+          if (err) throw err
+
+          cb()
+        })
+      }
+    }
+
+    alice.on('sent', function (msg) {
+      const seq = msg.object[SEQ]
+      t.equal(seq % 2, 0)
+      if (seq === seqs[seqs.length - 1]) {
+        t.end()
+      }
+    })
+
+    const stubs = []
+    seqs.forEach(seq => {
+      alice.signAndSend({
+        to: bob._recipientOpts,
+        object: {
+          [TYPE]: 'tradle.SimpleMessage',
+          message: `hey bob ${seq}`
+        }
+      }, function (err, result) {
+        if (err) throw err
+
+        stubs.push({
+          link: result.message.link,
+          to: result.message.recipient
+        })
+
+        if (stubs.length === seqs.length) ee.emit('ready')
+      })
+    })
+  })
+})
+
+test('node.abortUnsent', function (t) {
+  contexts.nFriends(2, function (err, friends) {
+    if (err) throw err
+
+    helpers.connect(friends)
+    const [alice, bob] = friends
+    const skipped = []
+    const seqs = [0, 1, 2, 3]
+    const willDeliver = [4]
+    const toSend = seqs.slice()
+    const ee = new EventEmitter()
+    let ready = false
+
+    alice._send = function (msg, recipientInfo, cb) {
+      if (msg.unserialized.seq === 0) {
+        if (!ready) {
+          return ee.once('ready', onReady)
+        }
+
+        onReady()
+      } else {
+        cb()
+      }
+
+      function onReady () {
+        abortUnsent(() => cb(new Error('aborted')))
+      }
+    }
+
+    alice.sender.pause()
+    alice.on('sent', function (msg) {
+      const seq = msg.object[SEQ]
+      t.equal(seq, willDeliver.shift())
+      if (!willDeliver.length) t.end()
+    })
+
+    const stubs = []
+    seqs.forEach(seq => {
+      alice.signAndSend({
+        to: bob._recipientOpts,
+        object: {
+          [TYPE]: 'tradle.SimpleMessage',
+          message: `hey bob ${seq}`
+        }
+      }, function (err, result) {
+        if (err) throw err
+
+        stubs.push({
+          link: result.message.link,
+          to: result.message.recipient
+        })
+
+        if (stubs.length === seqs.length) {
+          ee.emit('ready')
+        }
+      })
+    })
+
+    function abortUnsent (cb) {
+      alice.abortUnsent({
+        to: bob.permalink
+      }, function (err, aborted) {
+        if (err) throw err
+
+        const expected = stubs.map(({ link }) => link)
+        t.same(aborted, expected)
+        alice.signAndSend({
+          to: bob._recipientOpts,
+          object: {
+            [TYPE]: 'tradle.SimpleMessage',
+            message: 'hey bob'
+          }
+        }, function (err) {
+          if (err) throw err
+
+          cb()
+        })
+      })
+    }
   })
 })
 
