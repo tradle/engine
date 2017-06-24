@@ -1397,6 +1397,7 @@ test('abortMessage', function (t) {
       const seq = msg.object[SEQ]
       t.equal(seq % 2, 1)
       if (seq === seqs[seqs.length - 1]) {
+        friends.forEach(friend => friend.destroy())
         t.end()
       }
     })
@@ -1445,6 +1446,7 @@ test('abortMessage from _send', function (t) {
       const seq = msg.object[SEQ]
       t.equal(seq % 2, 1)
       if (seq === seqs[seqs.length - 1]) {
+        friends.forEach(friend => friend.destroy())
         t.end()
       }
     })
@@ -1505,6 +1507,7 @@ test('node.abortMessages', function (t) {
       const seq = msg.object[SEQ]
       t.equal(seq % 2, 0)
       if (seq === seqs[seqs.length - 1]) {
+        friends.forEach(friend => friend.destroy())
         t.end()
       }
     })
@@ -1564,7 +1567,10 @@ test('node.abortUnsent', function (t) {
     alice.on('sent', function (msg) {
       const seq = msg.object[SEQ]
       t.equal(seq, willDeliver.shift())
-      if (!willDeliver.length) t.end()
+      if (!willDeliver.length) {
+        friends.forEach(friend => friend.destroy())
+        t.end()
+      }
     })
 
     const stubs = []
