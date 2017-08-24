@@ -609,9 +609,24 @@ test('message sequencing', function (t) {
     }, function (err, result) {
       if (err) throw err
 
-      context.destroy()
       t.equal(result.message.object[SEQ], 1)
-      t.end()
+
+      // next 10 seqs: 2, 3...
+      const sequence = new Array(10).fill(0).map((n, i) => i + 2)
+      async.map(sequence, function (i, done) {
+        sender.signAndSend({
+          object: { [TYPE]: 'blah', b: i },
+          to: receiver._recipientOpts
+        }, done)
+      }, function (err, results) {
+        if (err) throw err
+
+        const seqs = results.map(r => r.message.object[SEQ])
+        seqs.sort((a, b) => a - b)
+        t.same(seqs, sequence)
+        t.end()
+        context.destroy()
+      })
     })
   })
 })
