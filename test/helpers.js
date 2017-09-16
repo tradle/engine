@@ -236,7 +236,7 @@ exports.genUsers = function genUsers (n, cb) {
   async.map(tmp, function iterator (blah, done) {
     utils.newIdentity({
       networks: {
-        bitcoin: 'testnet',
+        bitcoin: ['testnet', 'bitcoin'],
         ethereum: 'ropsten'
       }
     }, done)
