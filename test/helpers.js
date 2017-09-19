@@ -230,16 +230,21 @@ exports.resurrect = function (deadNode) {
   ))
 }
 
-exports.genUsers = function genUsers (n, cb) {
-  const tmp = new Array(n).fill(0)
-
-  async.map(tmp, function iterator (blah, done) {
-    utils.newIdentity({
+exports.genUsers = function genUsers (opts, n, cb) {
+  if (typeof opts === 'number') {
+    cb = n
+    n = opts
+    opts = {
       networks: {
         bitcoin: ['testnet', 'bitcoin'],
         ethereum: 'ropsten'
       }
-    }, done)
+    }
+  }
+
+  const tmp = new Array(n).fill(0)
+  async.map(tmp, function iterator (blah, done) {
+    utils.newIdentity(opts, done)
   }, function (err, results) {
     if (err) return cb(err)
 
