@@ -1659,6 +1659,48 @@ test('node.abortUnsent', function (t) {
   })
 })
 
+test('get by seq', function (t) {
+  t.timeoutAfter(1000)
+
+  contexts.twoFriendsSentReceived(function (err, context) {
+    if (err) throw err
+
+    const { sender, receiver } = context
+    sender.signAndSend({
+      object: {
+        [TYPE]: 'sometype',
+        a: 'b'
+      },
+      to: receiver._recipientOpts,
+    }, rethrow)
+
+    receiver.on('message', function () {
+      async.map([
+        { node: receiver, seq: 0 },
+        { node: receiver, seq: 1 },
+        { node: sender, seq: 0 },
+        { node: sender, seq: 1 }
+      ], function (input, done) {
+        input.node.objects.getBySeq({
+          from: sender.permalink,
+          to: receiver.permalink,
+          seq: input.seq
+        }, function (err, val) {
+          if (err) throw err
+
+          t.equal(val.seq, input.seq),
+          done()
+        })
+      }, err => {
+        if (err) throw err
+
+        context.destroy()
+        t.end()
+      })
+    })
+  })
+})
+
 function rethrow (err) {
   if (err) throw err
 }
