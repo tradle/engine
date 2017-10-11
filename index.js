@@ -31,3 +31,4 @@ tradle.node = require('./lib/node')
 tradle.partial = require('./lib/partial')
 
 tradle.typeforce = require('./lib/typeforce')
+tradle.errors = require('./lib/errors')
