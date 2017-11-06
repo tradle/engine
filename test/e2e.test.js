@@ -327,7 +327,7 @@ test('`readseal` emitted once', function (t) {
   })
 })
 
-if (helpers.network.blockchain !== 'ethereum') {
+// if (helpers.network.blockchain !== 'ethereum') {
   test('detect next version', function (t) {
     // t.timeoutAfter(1000)
     let v1 = {
@@ -353,7 +353,10 @@ if (helpers.network.blockchain !== 'ethereum') {
         let seal
         newSealer.seal({ object: v2 }, rethrow)
         newSealer.on('wroteseal', _seal => seal = _seal)
-        newSealer.on('readseal', done)
+        newSealer.on('readseal', _seal => {
+          t.equal(_seal.prevLink, seal.prevLink)
+          done()
+        })
 
         newAuditor.watchNextVersion({
           link: v1link,
@@ -381,7 +384,7 @@ if (helpers.network.blockchain !== 'ethereum') {
       })
     })
   })
-}
+// }
 
 test('conversation', function (t) {
   contexts.nFriends(3, function (err, friends) {
@@ -1414,55 +1417,6 @@ test('missing messages', function (t) {
   })
 })
 
-test('abortMessage', function (t) {
-  contexts.nFriends(2, function (err, friends) {
-    if (err) throw err
-
-    helpers.connect(friends)
-    const [alice, bob] = friends
-    const skipped = []
-    const seqs = [0, 1, 2, 3]
-    const toSend = seqs.slice()
-
-    alice._send = function (msg, recipientInfo, cb) {
-      const seq = msg.unserialized.seq
-      if (seq % 2 === 0) {
-        cb(new Errors.WillNotSend())
-      } else {
-        cb()
-      }
-    }
-
-    alice.on('sent', function (msg) {
-      const seq = msg.object[SEQ]
-      t.equal(seq % 2, 1)
-      if (seq === seqs[seqs.length - 1]) {
-        friends.forEach(friend => friend.destroy())
-        t.end()
-      }
-    })
-
-    function sendNext () {
-      if (!toSend.length) return
-
-      const seq = toSend.shift()
-      alice.signAndSend({
-        to: bob._recipientOpts,
-        object: {
-          [TYPE]: 'tradle.SimpleMessage',
-          message: `hey bob ${seq}`
-        }
-      }, function (err) {
-        if (err) throw err
-
-        sendNext()
-      })
-    }
-
-    sendNext()
-  })
-})
-
 test('abortMessage from _send', function (t) {
   contexts.nFriends(2, function (err, friends) {
     if (err) throw err
@@ -1472,7 +1426,6 @@ test('abortMessage from _send', function (t) {
     const skipped = []
     const seqs = [0, 1, 2, 3]
     const toSend = seqs.slice()
-
     alice._send = function (msg, recipientInfo, cb) {
       const seq = msg.unserialized.seq
       if (seq % 2 === 0) {
@@ -1485,10 +1438,13 @@ test('abortMessage from _send', function (t) {
     alice.on('sent', function (msg) {
       const seq = msg.object[SEQ]
       t.equal(seq % 2, 1)
-      if (seq === seqs[seqs.length - 1]) {
+      if (seq < seqs[seqs.length - 1]) return
+
+      collect(alice.objects.unsent({ keys: false, body: false }), (err, results) => {
+        t.equal(results.length, 0)
         friends.forEach(friend => friend.destroy())
         t.end()
-      }
+      })
     })
 
     function sendNext () {
