@@ -117,7 +117,7 @@ exports.twoFriendsSentReceivedSealed = function (opts, cb) {
     const sealer = opts.sealer === 'sender' ? alice : bob
     const auditor = sealer === alice ? bob : alice
     sealer.seal({
-      link: result.sent.link,
+      object: result.sent.object,
       basePubKey: sealer.chainPubKey
     }, rethrow)
 
@@ -134,6 +134,7 @@ exports.twoFriendsSentReceivedSealed = function (opts, cb) {
       clearInterval(sealerInterval)
       auditor.watchSeal({
         link: seal.link,
+        headerHash: seal.headerHash,
         basePubKey: sealer.chainPubKey
       }, rethrow)
     })

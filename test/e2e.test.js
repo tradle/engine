@@ -14,6 +14,15 @@ const Wallet = require('@tradle/simple-wallet')
 const testHelpers = require('@tradle/test-helpers')
 // const kiki = require('@tradle/kiki')
 const protocol = require('@tradle/protocol')
+const {
+  PREVLINK,
+  PERMALINK,
+  AUTHOR,
+  SEQ,
+  SIG,
+  TYPE,
+  TYPES,
+} = require('@tradle/constants')
 const defaults = require('../lib/defaults')
 const utils = require('../lib/utils')
 const helpers = require('./helpers')
@@ -26,12 +35,8 @@ const constants = require('../lib/constants')
 const Partial = require('../lib/partial')
 const Errors = require('../lib/errors')
 const users = require('./fixtures/users')
-const PREVLINK = constants.PREVLINK
-const PERMALINK = constants.PERMALINK
-const MESSAGE_TYPE = constants.MESSAGE_TYPE
-const SEQ = constants.SEQ
-const SIG = constants.SIG
-const TYPE = constants.TYPE
+
+const MESSAGE_TYPE = TYPES.MESSAGE
 const retrystream = require('../lib/retrystream')
 const SHORT_BACKOFF_OPTS = {
   initialDelay: 10,
@@ -94,7 +99,11 @@ test('`createObject`', function (t) {
   t.timeoutAfter(1000)
 
   const alice = contexts.nUsers(1)[0]
-  const object = { [TYPE]: 'blah', a: 1 }
+  const object = {
+    [TYPE]: 'blah',
+    a: 1
+  }
+
   alice.actions.on('newobj', () => t.pass())
   alice.createObject({ object: utils.clone(object) }, function (err, result) {
     if (err) throw err
@@ -356,7 +365,7 @@ if (helpers.network.blockchain !== 'ethereum') {
         newSealer.on('readseal', done)
 
         newAuditor.watchNextVersion({
-          link: v1link,
+          object: v1,
           basePubKey: newSealer.chainPubKey
         }, rethrow)
 
@@ -445,11 +454,10 @@ test('delete watch after X confirmed', function (t) {
   contexts.twoFriendsSentReceivedSealed({ sealer: 'receiver' }, function (err, context) {
     if (err) throw err
 
-    const sender = context.sender
-    const receiver = context.receiver
-    const blockchain = sender.blockchain
+    const { sender, receiver, friends } = context
+    const { blockchain } = sender
 
-    async.parallel(context.friends.map(node => {
+    async.parallel(friends.map(node => {
       return function (cb) {
         async.parallel([
           done => checkWatch(node, 1, done),
@@ -462,12 +470,12 @@ test('delete watch after X confirmed', function (t) {
       if (err) throw err
 
       mintBlocks(defaults.confirmedAfter, rethrow)
-      async.parallel(context.friends.map(node => {
+      async.parallel(friends.map(node => {
         return done => node.once('readseal:confirmed', () => done())
       }), function (err) {
         if (err) throw err
 
-        async.parallel(context.friends.map(node => {
+        async.parallel(friends.map(node => {
           return done => checkWatch(node, 0, done)
         }), function (err) {
           if (err) throw err
@@ -626,8 +634,7 @@ test('message sequencing', function (t) {
   contexts.twoFriendsSentReceived(function (err, context) {
     if (err) throw err
 
-    const sender = context.sender
-    const receiver = context.receiver
+    const { sender, receiver } = context
     sender.signAndSend({
       object: { [TYPE]: 'blah', a: 1 },
       to: receiver._recipientOpts
@@ -806,10 +813,8 @@ test('versioning can only be done by previous author', function (t) {
   contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
     if (err) throw err
 
-    const sender = context.sender
-    const receiver = context.receiver
-    const v2 = utils.clone(context.message.object.object)
-    v2[PREVLINK] = v2[PERMALINK] = protocol.linkString(v2)
+    const { sender, receiver } = context
+    const v2 = protocol.nextVersion(context.message.object.object)
     v2.z = v2.z ? 0 : 1
     async.parallel([
       taskCB => sender.sign({ object: v2 }, taskCB),
@@ -877,7 +882,7 @@ test('send sealed', function (t) {
     }, rethrow)
 
     context.receiver.watchSeal = function (seal) {
-      t.equal(seal.link, context.sent.link)
+      t.equal(seal.headerHash, protocol.headerHash(context.sent.object))
       t.end()
       context.destroy()
     }
@@ -917,7 +922,6 @@ function newUpdateIdentityTest (caching) {
     function testAlice (done) {
       const newIdentity = utils.clone(oldIdentity)
       newIdentity.pubkeys = newIdentity.pubkeys.slice()
-      delete newIdentity[SIG]
       const keys = alice.keys.slice()
 
       keys.push(newKey)
@@ -928,11 +932,11 @@ function newUpdateIdentityTest (caching) {
       }, err => {
         if (err) throw err
 
-        t.same(newIdentity, protocol.body(alice.identity))
+        t.same(newIdentity.pubkeys, alice.identity.pubkeys)
         alice.addressBook.lookupIdentity(newKey.toJSON(), function (err, result) {
           if (err) throw err
 
-          t.same(protocol.body(result.object), newIdentity)
+          t.same(result.object, alice.identity)
           alice.objects.byPermalink(alice.permalink, function (err, result) {
             t.error(err)
             t.equal(result.link, alice.link)

@@ -9,16 +9,22 @@ const collect = require('stream-collector')
 // const tradle = require('../')
 const changesFeed = require('changes-feed')
 const Cache = require('lru-cache')
+const protocol = require('@tradle/protocol')
 const createAddressBook = require('../lib/dbs/addressBook')
 const users = require('./fixtures/users')
 const utils = require('../lib/utils')
 const topics = require('../lib/topics')
 const constants = require('../lib/constants')
 const createActions = require('../lib/actions')
-const TYPE = constants.TYPE
-const PERMALINK = constants.PERMALINK
-const PREVLINK = constants.PREVLINK
-const LINK = constants.LINK
+const {
+  TYPE,
+  PERMALINK,
+  PREVLINK,
+  LINK,
+  SIG,
+  AUTHOR,
+} = constants
+
 const IDENTITY_TYPE = constants.TYPES.IDENTITY
 const helpers = require('./helpers')
 
@@ -95,14 +101,15 @@ test('update identity (caching)', newUpdateTest(true))
 function newUpdateTest (doCache) {
   return function (t) {
     const changes = helpers.nextFeed()
-    const originalHash = 'abc'
-    const updateHash = 'abc1'
-
     const ted = extend(users[0].identity)
-    const newTed = extend(ted)
-    newTed[PREVLINK] = newTed[PERMALINK] = originalHash
-    newTed.name = 'ted!'
+    const originalHash = protocol.linkString(ted)
 
+    const newTed = protocol.nextVersion(ted)
+    newTed.name = 'ted!'
+    newTed[SIG] = 'newsig'
+    newTed[AUTHOR] = originalHash
+
+    const updateHash = protocol.linkString(newTed)
     const keeper = helpers.keeper()
     keeper.batch([
       {

@@ -39,6 +39,7 @@ test('watch', function (t) {
 
   const permalink = 'a1'
   const link = permalink
+  const headerHash = 'b1'
   const keyToVal = {
     [link]: obj
   }
@@ -85,9 +86,10 @@ test('watch', function (t) {
 
   const address = network.pubKeyToAddress(sealPubKey.pub)
   actions.createWatch({
-    link: link,
-    address: address,
-    basePubKey: basePubKey,
+    link,
+    address,
+    headerHash,
+    basePubKey,
     watchType: watchTypes.thisVersion
   })
 
@@ -95,7 +97,7 @@ test('watch', function (t) {
   transactor.send({
     to: [
       {
-        address: address,
+        address,
         amount: 10000
       }
     ]
@@ -200,9 +202,10 @@ test('batch', function (t) {
 
     const address = network.pubKeyToAddress(sealPubKey.pub)
     actions.createWatch({
-      link: link,
-      address: address,
-      basePubKey: basePubKey,
+      link,
+      address,
+      headerHash: 'blahheaderhash',
+      basePubKey,
       watchType: watchTypes.thisVersion
     }, rethrow)
 

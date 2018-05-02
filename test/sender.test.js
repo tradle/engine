@@ -6,13 +6,18 @@ const async = require('async')
 const createBackoff = require('backoff')
 const protocol = require('@tradle/protocol')
 const constants = require('../lib/constants')
-const PERMALINK = constants.PERMALINK
-const PREVLINK = constants.PREVLINK
-const LINK = constants.LINK
-const TYPE = constants.TYPE
-const SIG = constants.SIG
-const SEQ = constants.SEQ
-const MESSAGE_TYPE = constants.TYPES.MESSAGE
+const {
+  PERMALINK,
+  PREVLINK,
+  LINK,
+  TYPE,
+  SIG,
+  SEQ,
+  TYPES,
+  AUTHOR,
+  TIMESTAMP,
+} = constants
+const MESSAGE_TYPE = TYPES.MESSAGE
 const topics = require('../lib/topics')
 const statuses = require('../lib/status')
 const createObjectDB = require('../lib/dbs/objects')
@@ -30,6 +35,7 @@ test('try again', function (t) {
   const bobKey = protocol.genECKey()
   const bobPubKey = utils.omit(bobKey, 'priv')
   const bobAuthorObj = {
+    permalink: 'abc',
     sigPubKey: bobPubKey,
     sign: function (data, cb) {
       cb(null, utils.sign(data, bobKey))
@@ -39,28 +45,37 @@ test('try again', function (t) {
   const objs = [
     {
       [SEQ]: 0,
-      time: new Date('2020-01-01').getTime(),
+      [TIMESTAMP]: new Date('2020-01-01').getTime(),
       [TYPE]: MESSAGE_TYPE,
       recipientPubKey: alicePubKey,
+      [AUTHOR]: bobAuthorObj.permalink,
       object: {
         [TYPE]: 'a',
         [SIG]: 'blah',
-        a: 1
+        a: 1,
+        [AUTHOR]: bobAuthorObj.permalink,
+        [TIMESTAMP]: 1
       }
     },
     {
       [TYPE]: 'something else',
-      b: 1
+      b: 1,
+      [AUTHOR]: bobAuthorObj.permalink,
+      [TIMESTAMP]: 2
     },
     {
       [SEQ]: 0,
-      time: new Date('2020-01-01').getTime(),
+      [TIMESTAMP]: new Date('2020-01-01').getTime(),
       [TYPE]: MESSAGE_TYPE,
       recipientPubKey: alicePubKey,
+      [TIMESTAMP]: 4,
+      [AUTHOR]: bobAuthorObj.permalink,
       object: {
         [TYPE]: 'c',
         [SIG]: 'blah',
-        c: 1
+        c: 1,
+        [AUTHOR]: bobAuthorObj.permalink,
+        [TIMESTAMP]: 3
       }
     }
   ]
@@ -138,19 +153,26 @@ test('try again', function (t) {
     setTimeout(function () {
       // check that live stream is working
 
-      const obj = {
-        [SEQ]: 0,
-        time: new Date('2020-01-01').getTime(),
-        [TYPE]: MESSAGE_TYPE,
-        recipientPubKey: alicePubKey,
+      const payload = protocol.object({
         object: {
           [TYPE]: 'something',
-          [SIG]: 'blah',
+          [AUTHOR]: bobAuthorObj.permalink,
           d: 1
         }
+      })
+
+      payload[SIG] = 'blah'
+      let msg = {
+        [SEQ]: 0,
+        [TIMESTAMP]: new Date('2020-01-01').getTime(),
+        [TYPE]: MESSAGE_TYPE,
+        [AUTHOR]: bobAuthorObj.permalink,
+        recipientPubKey: alicePubKey,
+        object: payload
       }
 
-      create(obj)
+      msg = protocol.object({ object: msg })
+      create(msg)
       sender.pause()
       setTimeout(() => sender.resume(), 500)
     }, 200)
@@ -158,7 +180,7 @@ test('try again', function (t) {
 
   function create (object, cb) {
     protocol.sign({
-      object: object,
+      object,
       author: bobAuthorObj
     }, function (err, result) {
       if (err) throw err

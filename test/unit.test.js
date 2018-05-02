@@ -7,6 +7,7 @@ const levelup = require('levelup')
 const subdown = require('subleveldown')
 const Readable = require('readable-stream').Readable
 const collect = require('stream-collector')
+const protocol = require('@tradle/protocol')
 const controls = require('../lib/controls')
 const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
@@ -15,7 +16,10 @@ const Partial = require('../lib/partial')
 const users = require('./fixtures/users')
 const {
   TYPE,
-  SIG
+  SIG,
+  AUTHOR,
+  VERSION,
+  TIMESTAMP
 } = require('../lib/constants')
 
 test('merge streams', function (t) {
@@ -325,22 +329,25 @@ test('controls', function (t) {
 // })
 
 test('partials', function (t) {
-  const obj = {
-    [TYPE]: 'tradle.Something',
-    [SIG]: '...',
-    a: 1,
-    b: {
-      b1: 'hey'
-    },
-    c: {
-      c1: {
-        c11: 'ho'
+  const obj = protocol.object({
+    object: {
+      [TYPE]: 'tradle.Something',
+      [AUTHOR]: 'bob',
+      a: 1,
+      b: {
+        b1: 'hey'
       },
-      c2: 4
-    },
-    d: true
-  }
+      c: {
+        c1: {
+          c11: 'ho'
+        },
+        c2: 4
+      },
+      d: true
+    }
+  })
 
+  obj[SIG] = '...'
   const partialType = Partial
     .from(obj)
     .add({ property: TYPE, key: true, value: true })
