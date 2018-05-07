@@ -15,6 +15,7 @@ const {
   SEQ,
   TYPES,
   AUTHOR,
+  RECIPIENT,
   TIMESTAMP,
 } = constants
 const MESSAGE_TYPE = TYPES.MESSAGE
@@ -34,8 +35,13 @@ test('try again', function (t) {
   const alicePubKey = utils.omit(aliceKey, 'priv')
   const bobKey = protocol.genECKey()
   const bobPubKey = utils.omit(bobKey, 'priv')
+  const authorLink = 'bbbb'
+  const recipientLink = 'aaaa'
+  const bob = helpers.dummyIdentity(authorLink)
+  const alice = helpers.dummyIdentity(recipientLink)
+
   const bobAuthorObj = {
-    permalink: 'abc',
+    permalink: authorLink,
     sigPubKey: bobPubKey,
     sign: function (data, cb) {
       cb(null, utils.sign(data, bobKey))
@@ -47,8 +53,8 @@ test('try again', function (t) {
       [SEQ]: 0,
       [TIMESTAMP]: new Date('2020-01-01').getTime(),
       [TYPE]: MESSAGE_TYPE,
-      recipientPubKey: alicePubKey,
       [AUTHOR]: bobAuthorObj.permalink,
+      [RECIPIENT]: recipientLink,
       object: {
         [TYPE]: 'a',
         [SIG]: 'blah',
@@ -67,9 +73,9 @@ test('try again', function (t) {
       [SEQ]: 0,
       [TIMESTAMP]: new Date('2020-01-01').getTime(),
       [TYPE]: MESSAGE_TYPE,
-      recipientPubKey: alicePubKey,
       [TIMESTAMP]: 4,
       [AUTHOR]: bobAuthorObj.permalink,
+      [RECIPIENT]: recipientLink,
       object: {
         [TYPE]: 'c',
         [SIG]: 'blah',
@@ -79,11 +85,6 @@ test('try again', function (t) {
       }
     }
   ]
-
-  const authorLink = 'bob'
-  const recipientLink = 'alice'
-  const bob = helpers.dummyIdentity(authorLink)
-  const alice = helpers.dummyIdentity(recipientLink)
 
   const changes = helpers.nextFeed()
   const actions = createActions({ changes })
@@ -167,7 +168,7 @@ test('try again', function (t) {
         [TIMESTAMP]: new Date('2020-01-01').getTime(),
         [TYPE]: MESSAGE_TYPE,
         [AUTHOR]: bobAuthorObj.permalink,
-        recipientPubKey: alicePubKey,
+        [RECIPIENT]: recipientLink,
         object: payload
       }
 

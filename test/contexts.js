@@ -59,7 +59,7 @@ exports.twoFriendsSentReceived = function (object, cb) {
 
     const sender = friends[0]
     const receiver = friends[1]
-    const aInfo = { link: sender.identityInfo.link }
+    const aInfo = { permalink: sender.identityInfo.permalink }
     let numTries = 0
 
     sender._send = function (msg, recipient, cb) {

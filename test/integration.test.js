@@ -44,6 +44,7 @@ test('sendy', function (t) {
     })
 
     const transports = friends.map(function (node, i) {
+      const other = i === 0 ? friends[1] : friends[0]
       const wsClient = new WebSocketClient({
         url: url + '?from=' + getTLSPubKey(node.identity),
         autoConnect: true
@@ -73,13 +74,13 @@ test('sendy', function (t) {
       })
 
       transport.on('message', function (msg, from) {
-        const pubKey = {
-          type: 'ec',
-          curve: 'curve25519',
-          pub: new Buffer(from, 'hex')
-        }
+        // const pubKey = {
+        //   type: 'ec',
+        //   curve: 'curve25519',
+        //   pub: new Buffer(from, 'hex')
+        // }
 
-        node.receive(msg, { pubKey }, rethrow)
+        node.receive(msg, { permalink: other.permalink }, rethrow)
       })
 
       node._send = function (msg, recipient, cb) {

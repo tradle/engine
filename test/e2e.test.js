@@ -159,7 +159,7 @@ test('basic send/receive', function (t) {
 
     const alice = friends[0]
     const bob = friends[1]
-    const aInfo = { link: alice.identityInfo.link }
+    const aInfo = { permalink: alice.identityInfo.permalink }
     let numTries = 0
 
     alice._send = function (msg, recipient, cb) {

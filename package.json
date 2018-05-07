@@ -21,7 +21,7 @@
   "license": "GPLv3",
   "dependencies": {
     "@tradle/bitcoinjs-lib": "^1.6.0",
-    "@tradle/constants": "^2.3.1",
+    "@tradle/constants": "^2.3.2",
     "@tradle/protocol": "github:tradle/protocol#merklelink",
     "async": "^2.0.0-rc.4",
     "backoff": "^2.5.0",
