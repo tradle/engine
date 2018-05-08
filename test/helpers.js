@@ -237,7 +237,7 @@ exports.genUsers = function genUsers (opts, n, cb) {
     opts = {
       networks: {
         bitcoin: ['testnet', 'bitcoin'],
-        ethereum: 'ropsten'
+        ethereum: 'rinkeby'
       }
     }
   }
