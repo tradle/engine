@@ -1,6 +1,6 @@
 
 const once = require('once')
-const networkName = 'ropsten'
+const networkName = 'rinkeby'
 const Wallet = require('ethereumjs-wallet')
 const constants = require('@tradle/ethereum-adapter/networks')[networkName]
 const port = 28532
