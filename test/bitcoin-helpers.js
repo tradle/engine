@@ -3,6 +3,7 @@ const fakeWallet = require('./wallet')
 const network = require('@tradle/bitcoin-adapter').testnet
 const users = require('./fixtures/users')
 const fakeChain = require('./bitcoin-fakechain')
+const utils = require('../lib/utils')
 
 exports.network = network
 
@@ -25,14 +26,7 @@ exports.transactor = function ({ privateKey, blockchain }) {
 }
 
 exports.blockchain = function () {
-  const addresses = users.map(u => {
-    return u.identity.pubkeys.find(key => {
-      return key.purpose === 'messaging' &&
-        key.type === network.blockchain &&
-        key.networkName === network.name
-    }).fingerprint
-  })
-
+  const addresses = users.map(u => u.identity.pubkeys.find(k => utils.isChainKey(k, network)).fingerprint)
   return fakeChain({
     network,
     unspents: addresses.map(address => {

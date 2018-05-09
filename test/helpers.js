@@ -149,7 +149,7 @@ exports.createNode = function createNode (opts) {
   } = opts
 
   const keeper = opts.keeper || helpers.keeper()
-  const privateKey = utils.chainKey(opts.keys, network.blockchain).privKeyString
+  const privateKey = utils.chainKey(opts.keys, network).privKeyString
   const transactor = opts.transactor || helpers.transactor({ keys, blockchain })
   if (!blockchain) blockchain = transactor.blockchain
 
