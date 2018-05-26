@@ -2,7 +2,6 @@ require('./env')
 
 const test = require('tape')
 const async = require('async')
-const extend = require('xtend')
 const levelup = require('levelup')
 const leveldown = require('memdown')
 const collect = require('stream-collector')
@@ -101,7 +100,7 @@ test('update identity (caching)', newUpdateTest(true))
 function newUpdateTest (doCache) {
   return function (t) {
     const changes = helpers.nextFeed()
-    const ted = extend(users[0].identity)
+    const ted = utils.clone(users[0].identity)
     const originalHash = protocol.linkString(ted)
 
     const newTed = protocol.nextVersion(ted)

@@ -5,7 +5,6 @@ const path = require('path')
 const { EventEmitter } = require('events')
 const deepEqual = require('deep-equal')
 const test = require('tape')
-const extend = require('xtend')
 const memdown = require('memdown')
 const async = require('async')
 const collect = require('stream-collector')
@@ -365,6 +364,7 @@ if (helpers.network.blockchain !== 'ethereum') {
         newSealer.on('readseal', done)
 
         newAuditor.watchNextVersion({
+          chain: utils.networkToIdentifier(helpers.network),
           object: v1,
           basePubKey: newSealer.chainPubKey
         }, rethrow)
@@ -455,7 +455,6 @@ test('delete watch after X confirmed', function (t) {
     if (err) throw err
 
     const { sender, receiver, friends } = context
-    const { blockchain } = sender
 
     async.parallel(friends.map(node => {
       return function (cb) {
@@ -488,6 +487,7 @@ test('delete watch after X confirmed', function (t) {
     })
 
     function mintBlocks (n, cb) {
+      const blockchain = sender.getBlockchainAdapter(utils.networkToIdentifier(helpers.network))
       blockchain.on('block', next)
 
       function next () {

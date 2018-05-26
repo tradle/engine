@@ -1,4 +1,5 @@
 const async = require('async')
+const utils = require('../lib/utils')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE
 let users = require('./fixtures/users')
@@ -17,8 +18,9 @@ exports.nUsers = function nUsers (n) {
     opts.blockchain = blockchain
 
     const node = helpers.createNode(opts)
-
-    if (!blockchain) blockchain = node.blockchain
+    if (!blockchain) {
+      blockchain = node.getBlockchainAdapter(utils.networkToIdentifier(node.network))
+    }
 
     return node
   })
@@ -133,6 +135,7 @@ exports.twoFriendsSentReceivedSealed = function (opts, cb) {
       result.readseal = seal
       clearInterval(sealerInterval)
       auditor.watchSeal({
+        chain: utils.networkToIdentifier(sealer.network),
         link: seal.link,
         headerHash: seal.headerHash,
         basePubKey: sealer.chainPubKey

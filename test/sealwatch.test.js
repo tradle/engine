@@ -1,7 +1,6 @@
 require('./env')
 
 const test = require('tape')
-const extend = require('xtend')
 const async = require('async')
 const protocol = require('@tradle/protocol')
 // const network = require('@tradle/bitcoin-adapter').testnet
@@ -69,8 +68,7 @@ test('watch', function (t) {
   const sealwatch = createSealWatch({
     actions,
     // chaintracker: chaintracker,
-    network,
-    blockchain,
+    getBlockchainAdapter: () => blockchain,
     db: helpers.nextDB(),
     watches: watchDB,
     objects: {}, // don't actually need it yet
@@ -86,6 +84,8 @@ test('watch', function (t) {
 
   const address = network.pubKeyToAddress(sealPubKey.pub)
   actions.createWatch({
+    blockchain: network.blockchain,
+    networkName: network.name,
     link,
     address,
     headerHash,
@@ -167,8 +167,7 @@ test('batch', function (t) {
   const sealwatch = createSealWatch({
     actions,
     // chaintracker: chaintracker,
-    network,
-    blockchain,
+    getBlockchainAdapter: () => blockchain,
     db: helpers.nextDB(),
     watches: watchDB,
     objects: {}, // don't actually need it yet
@@ -202,6 +201,8 @@ test('batch', function (t) {
 
     const address = network.pubKeyToAddress(sealPubKey.pub)
     actions.createWatch({
+      blockchain: network.blockchain,
+      networkName: network.name,
       link,
       address,
       headerHash: 'blahheaderhash',

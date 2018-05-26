@@ -1,11 +1,10 @@
 const { EventEmitter } = require('events')
 const crypto = require('crypto')
-const extend = require('xtend/mutable')
 const Wallet = require('@tradle/simple-wallet')
 const bitcoin = require('@tradle/bitcoinjs-lib')
 const typeforce = require('typeforce')
-const utils = require('@tradle/utils')
 const { testnet } = require('@tradle/bitcoin-adapter')
+const utils = require('../lib/utils')
 const constants = require('./constants')
 
 module.exports = function fakeBitcoinBlockchain (opts) {
@@ -36,7 +35,7 @@ module.exports = function fakeBitcoinBlockchain (opts) {
     blocktime
   })
 
-  const wrapper = extend(new EventEmitter(), network.wrapCommonBlockchain(fakechain))
+  const wrapper = utils.extend(new EventEmitter(), network.wrapCommonBlockchain(fakechain))
   fakechain.on('block', block => wrapper.emit('block', block))
   return wrapper
 }
@@ -49,7 +48,7 @@ function createFakeChain ({ network, unspents, blocktime }) {
     emitter.emit('block', { blockHeight: blocks.length - 1 })
   }, blocktime).unref()
 
-  const emitter = extend(new EventEmitter(), {
+  const emitter = utils.extend(new EventEmitter(), {
     info: function (cb) {
       process.nextTick(function () {
         const last = blocks[blocks.length - 1]

@@ -29,6 +29,6 @@ function createTransactor ({ privateKey }) {
   })
 
   const transactor = Network.createTransactor({ network, wallet, engine })
-  transactor.blockchain = Network.createBlockchainAPI({ engine })
+  transactor.blockchain = network.createBlockchainAPI({ engine })
   return transactor
 }
