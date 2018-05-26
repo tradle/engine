@@ -487,12 +487,12 @@ test('delete watch after X confirmed', function (t) {
     })
 
     function mintBlocks (n, cb) {
-      const blockchain = sender.getBlockchainAdapter(utils.networkToIdentifier(helpers.network))
-      blockchain.on('block', next)
+      const network = sender.getBlockchainAdapter(utils.networkToIdentifier(helpers.network))
+      network.api.on('block', next)
 
       function next () {
         if (--n === 0) {
-          blockchain.removeListener('block', next)
+          network.api.removeListener('block', next)
           cb()
         }
       }

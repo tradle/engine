@@ -57,7 +57,6 @@ test('watch', function (t) {
   // const bobKey = protocol.genECKey()
   const bob = users[0]
   const transactor = helpers.transactor({ keys: bob.keys })
-  const { blockchain } = transactor
 
   const watchDB = createWatchDB({
     changes,
@@ -68,7 +67,7 @@ test('watch', function (t) {
   const sealwatch = createSealWatch({
     actions,
     // chaintracker: chaintracker,
-    getBlockchainAdapter: () => blockchain,
+    getBlockchainAdapter: () => network,
     db: helpers.nextDB(),
     watches: watchDB,
     objects: {}, // don't actually need it yet
@@ -114,7 +113,7 @@ test('watch', function (t) {
     t.ok(createdActions.readseal)
 
     sealwatch.stop()
-    if (blockchain.close) blockchain.close()
+    if (network.api.close) network.api.close()
     if (transactor.close) transactor.close()
 
     t.pass()
@@ -156,8 +155,6 @@ test('batch', function (t) {
   const actions = Actions({ changes: changes })
 
   const transactor = helpers.transactor(bob)
-  const { blockchain } = transactor
-
   const watchDB = createWatchDB({
     changes: changes,
     db: helpers.nextDB(),
@@ -167,7 +164,7 @@ test('batch', function (t) {
   const sealwatch = createSealWatch({
     actions,
     // chaintracker: chaintracker,
-    getBlockchainAdapter: () => blockchain,
+    getBlockchainAdapter: () => network,
     db: helpers.nextDB(),
     watches: watchDB,
     objects: {}, // don't actually need it yet
@@ -180,15 +177,16 @@ test('batch', function (t) {
   sealwatch.on('error', rethrow)
   sealwatch.start()
 
-  const txs = blockchain.addresses.transactions
+  const { api } = network
+  const txs = api.addresses.transactions
   let total = 0
-  blockchain.addresses.transactions = function (txs, cb) {
+  api.addresses.transactions = function (txs, cb) {
     t.ok(txs.length <= 5)
     total += txs.length
     cb(null, [])
     if (total === numTxs) {
       sealwatch.stop()
-      if (blockchain.close) blockchain.close()
+      if (api.close) api.close()
       if (transactor.close) transactor.close()
 
       t.end()

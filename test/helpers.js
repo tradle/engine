@@ -121,7 +121,7 @@ exports.userToOpts = function userToOpts (user, name) {
   }
 }
 
-exports.transactor = function ({ keys, blockchain }) {
+exports.transactor = function ({ keys }) {
   let privateKey
   keys.some(key => {
     const json = key.toJSON ? key.toJSON(true) : key
@@ -132,33 +132,30 @@ exports.transactor = function ({ keys, blockchain }) {
     }
   })
 
-  return networkHelpers.transactor({ privateKey, blockchain })
+  return networkHelpers.transactor({ privateKey })
 }
 
-exports.blockchain = networkHelpers.blockchain
+exports.createAPI = networkHelpers.createAPI
 exports.network = networkHelpers.network
 exports.blocktime = blocktime
 // exports.mintBlocks = networkHelpers.mintBlocks
 
 exports.createNode = function createNode (opts) {
   let {
-    blockchain,
     keys,
     leveldown=LEVELDOWN,
     syncInterval=blocktime
   } = opts
 
+  const blockchainAdapter = opts.network || network
   const keeper = opts.keeper || helpers.keeper()
-  const privateKey = utils.chainKey(opts.keys, network).privKeyString
-  const transactor = opts.transactor || helpers.transactor({ keys, blockchain })
-  if (!blockchain) blockchain = transactor.blockchain
-
+  const privateKey = utils.chainKey(opts.keys, blockchainAdapter).privKeyString
+  const transactor = opts.transactor || helpers.transactor({ keys })
   const dir = opts.dir || helpers.nextDir()
   opts = utils.extend(opts, {
     dir,
     keeper,
-    network,
-    blockchain,
+    getBlockchainAdapter: () => blockchainAdapter,
     transactor,
     leveldown,
     syncInterval
@@ -225,7 +222,7 @@ exports.nextDir = function nextDir () {
 
 exports.resurrect = function (deadNode) {
   return helpers.createNode(utils.pick(deadNode,
-    'networkName', 'keeper', 'dir', 'leveldown',
+    'network', 'getBlockchainAdapter', 'keeper', 'dir', 'leveldown',
     'identity', 'keys', 'name'
   ))
 }

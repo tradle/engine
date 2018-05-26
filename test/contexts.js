@@ -7,7 +7,7 @@ const helpers = require('./helpers')
 const contexts = exports
 
 exports.nUsers = function nUsers (n) {
-  let blockchain
+  let blockchainReader
   if (users.length < n) throw new Error('not enough users in fixtures')
   if (helpers.names.length < n) throw new Error('not enough names in fixtures')
 
@@ -15,14 +15,8 @@ exports.nUsers = function nUsers (n) {
   users = users.slice(n)
   return batch.slice(0, n).map((user, i) => {
     const opts = helpers.userToOpts(user, helpers.names[i])
-    opts.blockchain = blockchain
-
-    const node = helpers.createNode(opts)
-    if (!blockchain) {
-      blockchain = node.getBlockchainAdapter(utils.networkToIdentifier(node.network))
-    }
-
-    return node
+    opts.network = helpers.network
+    return helpers.createNode(opts)
   })
 }
 

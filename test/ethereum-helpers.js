@@ -7,6 +7,10 @@ const port = 28532
 const Network = require('@tradle/ethereum-adapter')
 const { blocktime } = require('./constants')
 const network = Network.createNetwork({
+  engineOpts: {
+    rpcUrl: `http://localhost:${port}`,
+    pollingInterval: blocktime / 2
+  },
   networkName,
   constants
 })
@@ -16,7 +20,7 @@ module.exports = {
   constants,
   port,
   transactor: createTransactor,
-  blockchain: network.createBlockchainAPI
+  createAPI: network.createBlockchainAPI
 }
 
 function createTransactor ({ privateKey }) {
