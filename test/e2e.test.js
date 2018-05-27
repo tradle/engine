@@ -276,6 +276,45 @@ test('do receive messages carrying already known objects', function (t) {
   })
 })
 
+test('watch txId', function (t) {
+  // t.timeoutAfter(blocktime * 10)
+  contexts.twoFriendsSentReceived(function (err, context) {
+    if (err) throw err
+
+    const { friends, sent } = context
+    const [sealer, watcher] = friends
+    sealer.seal({
+      object: sent.object,
+      basePubKey: sealer.chainPubKey
+    }, rethrow)
+
+    // alice.seal(result.sent, rethrow)
+    // bob.seal(result.message, rethrow)
+
+    sealer.once('wroteseal', seal => {
+      watcher.watchSeal({
+        chain: {
+          blockchain: seal.blockchain,
+          networkName: seal.networkName
+        },
+        link: seal.link,
+        headerHash: seal.headerHash,
+        basePubKey: seal.basePubKey,
+        txId: seal.txId,
+        address: seal.sealAddress,
+      }, rethrow)
+    })
+
+    watcher.on('readseal', seal => {
+      if (seal.confirmations) {
+        t.pass('confirmed seal watched via txId')
+        context.destroy()
+        t.end()
+      }
+    })
+  })
+})
+
 test('sender seals', function (t) {
   // t.timeoutAfter(blocktime * 10)
   contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {

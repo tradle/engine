@@ -151,7 +151,8 @@ function createFakeChain ({ network, unspents, blocktime }) {
               txId: tx.getId(),
               txHex: tx.toHex(),
               blockId: tx.block.getId(),
-              blockHeight: tx.block.blockHeight
+              blockHeight: tx.block.blockHeight,
+              // confirmations: blocks.length - tx.block.blockHeight - 1
             }
           })
 
