@@ -76,7 +76,7 @@ exports.connect = function connect (nodes) {
         return a.permalink === recipient.permalink
       })
 
-      b.receive(msg, myInfo, function (err) {
+      b.receive(msg.object, myInfo, function (err) {
         if (err) throw err
 
         cb.apply(null, arguments)

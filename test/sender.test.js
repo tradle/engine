@@ -105,11 +105,10 @@ test('try again', function (t) {
   const sender = createSender({
     name: 'sender',
     send: function (msg, recipient, cb) {
-      msg = utils.unserializeMessage(msg)
       t.ok(sender.isRunning())
 
       // 2 + 3 times
-      t.same(msg, unsent[0])
+      t.same(msg.object, unsent[0])
       if (--failuresToGo <= 0) {
         unsent.shift()
         return cb()

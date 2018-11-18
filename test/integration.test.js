@@ -80,12 +80,12 @@ test('sendy', function (t) {
         //   pub: new Buffer(from, 'hex')
         // }
 
-        node.receive(msg, { permalink: other.permalink }, rethrow)
+        node.receive(JSON.parse(msg), { permalink: other.permalink }, rethrow)
       })
 
       node._send = function (msg, recipient, cb) {
         const pubKey = getTLSPubKey(recipient.object)
-        return transport.send(pubKey, msg, cb)
+        return transport.send(pubKey, JSON.stringify(msg.object), cb)
       }
 
       return transport

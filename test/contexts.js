@@ -59,7 +59,7 @@ exports.twoFriendsSentReceived = function (object, cb) {
     let numTries = 0
 
     sender._send = function (msg, recipient, cb) {
-      receiver.receive(msg, aInfo, function (err) {
+      receiver.receive(msg.object, aInfo, function (err) {
         if (err) throw err
 
         cb.apply(null, arguments)

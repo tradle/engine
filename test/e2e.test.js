@@ -167,7 +167,7 @@ test('basic send/receive', function (t) {
         return cb(new Error('oops'))
       }
 
-      bob.receive(msg, aInfo, function (err) {
+      bob.receive(msg.object, aInfo, function (err) {
         if (err) throw err
 
         cb.apply(null, arguments)
@@ -249,7 +249,7 @@ test('don\'t receive duplicate messages', function (t) {
     if (err) throw err
 
     const msg = context.message.object
-    context.receiver.receive(utils.serializeMessage(msg), context.sender._recipientOpts, function (err) {
+    context.receiver.receive(msg, context.sender._recipientOpts, function (err) {
       t.ok(err)
       context.destroy()
       t.end()
@@ -1408,14 +1408,14 @@ test('missing messages', function (t) {
     const [alice, bob] = friends
     const skipped = []
     alice._send = function (msg, recipientInfo, cb) {
-      const seq = msg.unserialized.seq
+      const seq = msg.seq
       // drop even-numbered messages
       if (seq % 2 === 1) {
         skipped.push(seq)
         return cb()
       }
 
-      return bob.receive(msg, alice._recipientOpts, cb)
+      return bob.receive(msg.object, alice._recipientOpts, cb)
     }
 
     const msgs = new Array(20).fill(0).map((val, i) => {
@@ -1468,7 +1468,7 @@ test('abortMessage', function (t) {
     const toSend = seqs.slice()
 
     alice._send = function (msg, recipientInfo, cb) {
-      const seq = msg.unserialized.seq
+      const seq = msg.seq
       if (seq % 2 === 0) {
         cb(new Errors.WillNotSend())
       } else {
@@ -1517,7 +1517,7 @@ test('abortMessage from _send', function (t) {
     const toSend = seqs.slice()
 
     alice._send = function (msg, recipientInfo, cb) {
-      const seq = msg.unserialized.seq
+      const seq = msg.seq
       if (seq % 2 === 0) {
         cb(new Errors.WillNotSend())
       } else {
@@ -1568,7 +1568,7 @@ test('node.abortMessages', function (t) {
     let ready = false
 
     alice._send = function (msg, recipientInfo, cb) {
-      if (msg.unserialized.seq === 0) {
+      if (msg.seq === 0) {
         if (!ready) return ee.once('ready', abortStuff)
 
         abortStuff()
@@ -1631,7 +1631,7 @@ test('node.abortUnsent', function (t) {
     let ready = false
 
     alice._send = function (msg, recipientInfo, cb) {
-      if (msg.unserialized.seq === 0) {
+      if (msg.seq === 0) {
         if (!ready) {
           return ee.once('ready', onReady)
         }
