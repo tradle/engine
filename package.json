@@ -22,7 +22,7 @@
   "dependencies": {
     "@tradle/bitcoinjs-lib": "^1.6.0",
     "@tradle/constants": "^2.3.2",
-    "@tradle/protocol": "^4.0.0",
+    "@tradle/protocol": ">4 <6",
     "async": "^2.6.1",
     "backoff": "^2.5.0",
     "bs58check": "^1.0.8",
