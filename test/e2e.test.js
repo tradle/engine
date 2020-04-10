@@ -943,13 +943,21 @@ function newUpdateIdentityTest (caching) {
     const alice = users[0]
     const bob = users[1]
     const oldIdentity = utils.clone(alice.identity)
-    const newKey = utils.genKey({
-      type: 'ec',
-      curve: 'p384'
-    }).set('purpose', 'goof off')
+    const aliceIdentityVersions = [oldIdentity]
+    const newKeys = [
+      utils.genKey({
+        type: 'ec',
+        curve: 'p384'
+      }).set('purpose', 'work hard'),
+      utils.genKey({
+        type: 'ec',
+        curve: 'p384'
+      }).set('purpose', 'goof off'),
+    ]
 
     async.series([
-      testAlice,
+      testAlice.bind(null, newKeys[0]),
+      testAlice.bind(null, newKeys[1]),
       testBob
     ], err => {
       if (err) throw err
@@ -958,8 +966,9 @@ function newUpdateIdentityTest (caching) {
       users.forEach(u => u.destroy())
     })
 
-    function testAlice (done) {
-      const newIdentity = utils.clone(oldIdentity)
+    function testAlice(newKey, done) {
+      const currentIdentity = utils.clone(alice.identity)
+      const newIdentity = utils.clone(alice.identity)
       newIdentity.pubkeys = newIdentity.pubkeys.slice()
       const keys = alice.keys.slice()
 
@@ -972,6 +981,7 @@ function newUpdateIdentityTest (caching) {
         if (err) throw err
 
         t.same(newIdentity.pubkeys, alice.identity.pubkeys)
+        t.notEqual(newIdentity._time, alice.identity._time)
         alice.addressBook.lookupIdentity(newKey.toJSON(), function (err, result) {
           if (err) throw err
 
@@ -979,31 +989,31 @@ function newUpdateIdentityTest (caching) {
           alice.objects.byPermalink(alice.permalink, function (err, result) {
             t.error(err)
             t.equal(result.link, alice.link)
+
+            aliceIdentityVersions.push(utils.clone(alice.identity))
+
             done(null, newIdentity)
           })
         })
       })
     }
 
-    function testBob (done) {
-      bob.addContact(oldIdentity, err => {
+    function testBob(done) {
+      async.series(aliceIdentityVersions.map(identity => bob.addContact.bind(bob, identity)), err => {
         if (err) throw err
 
-        bob.addContact(alice.identity, err => {
-          if (err) throw err
+        async.each([
+          newKeys[0].toJSON(),
+          newKeys[1].toJSON(),
+          { permalink: alice.permalink }
+        ], function iterator(identifier, onfound) {
+          bob.addressBook.lookupIdentity(identifier, function (err, result) {
+            if (err) throw err
 
-          async.each([
-            newKey.toJSON(),
-            { permalink: alice.permalink }
-          ], function iterator (identifier, onfound) {
-            bob.addressBook.lookupIdentity(identifier, function (err, result) {
-              if (err) throw err
-
-              t.same(result.object, alice.identity)
-              onfound()
-            })
-          }, done)
-        })
+            t.same(result.object, alice.identity)
+            onfound()
+          })
+        }, done)
       })
     }
   })
