@@ -56,7 +56,7 @@
   },
   "devDependencies": {
     "@tradle/bitcoin-adapter": "github:tradle/bitcoin-adapter",
-    "@tradle/ethereum-adapter": "github:tradle/ethereum-adapter",
+    "@tradle/ethereum-adapter": "^1.0.2",
     "@tradle/ethereumjs-wallet": "^0.6.2",
     "@tradle/keeper": "^3.1.0",
     "@tradle/protocol": "^4.0.0",
@@ -72,7 +72,7 @@
     "nkey-bitcoin": "^1.2.0",
     "nkey-curve25519": "^1.0.1",
     "nkey-ecdsa": "^1.0.1",
-    "nkey-ethereum": "github:tradle/nkey-ethereum",
+    "nkey-ethereum": "^1.0.1",
     "npid": "^0.4.0",
     "random-name": "^0.1.1",
     "sendy": "^2.0.1",
