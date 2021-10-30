@@ -10,5 +10,5 @@ addons:
     packages:
       - g++-4.8
 install:
-  - "travis_retry npm i -g forever tap"
+  - "travis_retry npm i -g tap"
   - "travis_retry npm i"

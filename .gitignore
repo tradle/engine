@@ -6,3 +6,4 @@ processed.txt
 *.log
 lite.js
 test/sealer.test.js1
+test/etherrpc.js.pid
