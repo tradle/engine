@@ -1,9 +1,9 @@
-const TestRPC = require('ethereumjs-testrpc')
+const TestRPC = require('ganache-core')
 const users = require('./fixtures/users')
 const { blocktime } = require('./constants')
 const { network, constants, port } = require('./ethereum-helpers')
 const server = TestRPC.server({
-  network_id: constants.chainId,
+  networkId: constants.chainId,
   blocktime: blocktime / 1000,
   accounts: users.map(user => {
     const key = user.keys.find(key => key.networkName === network.name && key.purpose === 'messaging')
