@@ -50,7 +50,7 @@ test('merge streams', function (t) {
 })
 
 test('pub key to address', function (t) {
-  const pub = new Buffer('030135adc7e0be8429fc903511f2f72ea481b25f9177d9f2f3d2ecfcd81d1b02b4', 'hex')
+  const pub = Buffer.from('030135adc7e0be8429fc903511f2f72ea481b25f9177d9f2f3d2ecfcd81d1b02b4', 'hex')
   t.equal(network.pubKeyToAddress(pub), 'muZH3FNp1836Eyxc966NnfWwe79TnUhuFi')
   t.end()
 })

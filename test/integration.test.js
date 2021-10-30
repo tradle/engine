@@ -64,7 +64,7 @@ test('sendy', function (t) {
               publicKey: tlsKey.pub
             },
             client: sendy,
-            theirPubKey: new Buffer(recipient, 'hex')
+            theirPubKey: Buffer.from(recipient, 'hex')
           })
         }
       })
@@ -77,7 +77,7 @@ test('sendy', function (t) {
         // const pubKey = {
         //   type: 'ec',
         //   curve: 'curve25519',
-        //   pub: new Buffer(from, 'hex')
+        //   pub: Buffer.from(from, 'hex')
         // }
 
         node.receive(JSON.parse(msg), { permalink: other.permalink }, rethrow)

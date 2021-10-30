@@ -24,7 +24,7 @@ module.exports = {
 }
 
 function createTransactor ({ privateKey }) {
-  privateKey = new Buffer(privateKey.priv, 'hex')
+  privateKey = Buffer.from(privateKey.priv, 'hex')
   const wallet = Wallet.fromPrivateKey(privateKey)
   const engine = Network.createEngine({
     privateKey,

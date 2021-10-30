@@ -802,7 +802,7 @@ test('custom merkle', function (t) {
   const defaultMerkleOpts = protocol.DEFAULT_MERKLE_OPTS
   protocol.DEFAULT_MERKLE_OPTS = {
     leaf: function (a) {
-      return new Buffer(a.data)
+      return Buffer.from(a.data)
     },
     parent: function (a, b) {
       return Buffer.concat([a.hash, b.hash])

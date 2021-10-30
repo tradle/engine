@@ -8,7 +8,7 @@ const server = TestRPC.server({
   accounts: users.map(user => {
     const key = user.keys.find(key => key.networkName === network.name && key.purpose === 'messaging')
     return {
-      secretKey: new Buffer(key.priv, 'hex'),
+      secretKey: Buffer.from(key.priv, 'hex'),
       balance: '0x0000000000000056bc75e2d63100000'
     }
   })
