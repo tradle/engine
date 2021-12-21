@@ -14,7 +14,7 @@ The engine's operations are covered by a patent. The tatent is filed only for de
 
 _this module is used by [Tradle](https://github.com/tradle/about/wiki)_  
 
-The engine provides a higher level API to a number of low level Tradle components. A UI is developed separately. Currently we focus on [React Native based UI](https://github.com/pgmemk/TiM) for iOS and Android, see the [preview video](https://www.youtube.com/watch?v=87jClbQkl2g)
+The engine provides a higher level API to a number of low level Tradle components. A UI is developed separately, on [React Native based UI](https://github.com/pgmemk/TiM) for iOS and Android, and using React Native Web for the Web.
 
 ### Datalog
 
