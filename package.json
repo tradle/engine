@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run test:bitcoin && npm run test:ethereum",
-    "tests": "tap `git ls-files test/*.test.js`",
+    "tests": "tape test/*.test.js",
     "test:bitcoin": "BLOCKCHAIN=bitcoin npm run tests",
     "test:ethereum": "env DEBUG= npm run ether:stop; env DEBUG= npm run ether:start && BLOCKCHAIN=ethereum npm run tests; EXIT=$?; env DEBUG= npm run ether:stop; exit $EXIT",
     "ether:start": "./test/etherrpc.js",
@@ -80,8 +80,8 @@
     "sendy-otr": "^2.0.0",
     "sendy-ws": "^1.2.4",
     "sendy-ws-relay": "^1.1.3",
-    "tap": "^5.7.2",
-    "tape": "^4.5.1"
+    "tap": "^15.1.6",
+    "tape": "^5.4.0"
   },
   "peerDependencies": {
     "@tradle/protocol": ">4 <6"
