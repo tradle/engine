@@ -257,6 +257,7 @@ test('lockify', function (t) {
   })
 
   obj.b('b', function (err, val) {
+    t.error(err)
     --running
     t.ok(done.a)
     t.equal(val, 'yay')
@@ -269,47 +270,125 @@ test('lockify', function (t) {
   })
 })
 
+function last (arr) {
+  const l = arr.length
+  if (l === 0) {
+    return null
+  }
+  return arr[l - 1]
+}
+
 test('controls', function (t) {
-  let started
-  let paused
+  let started = false
+  let paused = false
+  const events = []
 
   const c = controls({
-    start: function () {
+    start (arg) {
       t.notOk(started)
+      t.notOk(paused)
+      t.equals(c, this)
+      t.equals(arg, 'arg-start')
+      const lastEvent = last(events)
+      t.ok(lastEvent === null || lastEvent === 'stop')
+      t.notEquals(last(events), 'start')
       started = true
-      return function () {
+      return function stop (stopArg) {
+        t.equals(c, this) // eslint-disable-line no-invalid-this
         t.ok(started)
+        t.equals(stopArg, 'arg-end')
         started = false
       }
     },
-    pause: function () {
+    pause (arg) {
+      t.ok(started)
       t.notOk(paused)
+      t.equals(c, this)
+      t.equals(last(events), 'start')
+      t.equals(arg, 'arg-pause')
       paused = true
-      return function () {
+      return function resume (resumeArg) {
+        t.equals(c, this) // eslint-disable-line no-invalid-this
+        t.equals(resumeArg, undefined) // eslint-disable-line no-undefined
+        t.ok(started)
         t.ok(paused)
+        t.equals(last(events), 'pause')
         paused = false
       }
     }
   })
+    .on('start', () => events.push('start'))
+    .on('pause', () => events.push('pause'))
+    .on('resume', () => events.push('resume'))
+    .on('stop', () => events.push('stop'))
 
   t.notOk(c.isRunning())
-  t.throws(function () {
-    c.pause()
-  })
+  t.throws(() => c.pause())
+  t.throws(() => c.resume())
 
-  c.start()
+  c.start('arg-start')
+  t.deepEquals(events, ['start'])
   t.ok(c.isRunning())
+  c.pause('arg-pause')
+  t.deepEquals(events, ['start', 'pause'])
   c.pause()
+  t.deepEquals(events, ['start', 'pause'])
   t.notOk(c.isRunning())
-  c.stop()
+  c.stop('arg-end')
+  t.deepEquals(events, ['start', 'pause', 'resume', 'stop'])
   t.notOk(c.isRunning())
-  t.throws(function () {
-    c.resume()
-  })
+  t.throws(() => c.resume())
 
-  c.start()
+  c.start('arg-start')
   t.ok(c.isRunning())
+  c.pause('arg-pause')
+  c.resume('arg-resume')
+  t.deepEquals(events, ['start', 'pause', 'resume', 'stop', 'start', 'pause', 'resume'])
+  c.stop('arg-end')
 
+  t.end()
+})
+
+test('controls without pause', function (t) {
+  const c = controls({
+    start () {
+      return () => {}
+    }
+  })
+  c.start()
+  t.throws(() => c.pause())
+  t.end()
+})
+
+test('controls when extending another instance', function (t) {
+  const base = controls({
+    start () {
+      t.equals(this, c)
+      return function stop () {
+        t.equals(this, c) // eslint-disable-line no-invalid-this
+      }
+    },
+    pause () {
+      t.equals(this, c)
+      return function resume () {
+        t.equals(this, c) // eslint-disable-line no-invalid-this
+      }
+    }
+  })
+  const events = []
+  const c = Object.assign({
+    test: true,
+    emit (event) {
+      events.push(event)
+    }
+  }, base)
+  t.ok(c.test)
+  c.start()
+  t.deepEquals(events, ['start'])
+  c.pause()
+  t.deepEquals(events, ['start', 'pause'])
+  c.stop()
+  t.deepEquals(events, ['start', 'pause', 'resume', 'stop'])
   t.end()
 })
 
