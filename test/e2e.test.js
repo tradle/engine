@@ -1109,12 +1109,12 @@ test('pause per recipient', function (t) {
 
     function goodReceiver () {
       t.pass()
-      t.end()
       // wait a bit to see if we get any duplicates
       bob.on('message', badReceiver)
       setTimeout(function () {
         t.pass()
         friends.forEach(friend => friend.destroy())
+        t.end()
       }, 1000)
     }
   })
