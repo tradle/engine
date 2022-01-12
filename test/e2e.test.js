@@ -60,7 +60,7 @@ let INSTANCE_COUNT = 0
 test('self in address book', function (t) {
   // TODO: should be stricter
   // self should be in addressBook immediately
-  t.timeoutAfter(2000)
+  t.timeoutAfter(5000)
 
   let alice = contexts.nUsers(1)[0]
   alice.actions.once('addcontact', function () {
@@ -95,7 +95,7 @@ test('restart node', function (t) {
 })
 
 test('`createObject`', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(5000)
 
   const alice = contexts.nUsers(1)[0]
   const object = {
@@ -211,7 +211,7 @@ test('basic send/receive', function (t) {
 })
 
 test('get unsent to recipient', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(5000)
 
   contexts.nFriends(3, function (err, friends) {
     if (err) throw err
@@ -802,7 +802,7 @@ test('custom merkle', function (t) {
   const defaultMerkleOpts = protocol.DEFAULT_MERKLE_OPTS
   protocol.DEFAULT_MERKLE_OPTS = {
     leaf: function (a) {
-      return new Buffer(a.data)
+      return Buffer.from(a.data)
     },
     parent: function (a, b) {
       return Buffer.concat([a.hash, b.hash])
@@ -1109,12 +1109,12 @@ test('pause per recipient', function (t) {
 
     function goodReceiver () {
       t.pass()
-      t.end()
       // wait a bit to see if we get any duplicates
       bob.on('message', badReceiver)
       setTimeout(function () {
         t.pass()
         friends.forEach(friend => friend.destroy())
+        t.end()
       }, 1000)
     }
   })

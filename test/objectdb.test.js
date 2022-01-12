@@ -1,32 +1,18 @@
 require('./env')
 
 const test = require('tape')
-const async = require('async')
-const extend = require('xtend')
-const leveldown = require('memdown')
 const collect = require('stream-collector')
 const protocol = require('@tradle/protocol')
 const Actions = require('../lib/actions')
 const constants = require('../lib/constants')
 const createObjectDB = require('../lib/dbs/objects')
-const createSender = require('../lib/sender')
-const users = require('./fixtures/users')
 const utils = require('../lib/utils')
-const topics = require('../lib/topics')
-const statuses = require('../lib/status')
 const {
   TYPE,
   SIG,
-  PERMALINK,
-  PREVLINK,
-  LINK,
   AUTHOR,
-  VERSION,
-  TIMESTAMP,
-  TYPES,
 } = constants
 
-const IDENTITY_TYPE = TYPES.IDENTITY
 const helpers = require('./helpers')
 
 test('list objects', function (t) {

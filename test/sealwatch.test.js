@@ -25,7 +25,7 @@ const { network, blocktime } = helpers
 const users = require('./fixtures/users')
 
 test('watch', function (t) {
-  t.plan(3)
+  t.plan(2)
 
   const obj = {
     [TYPE]: 'something',
@@ -109,8 +109,10 @@ test('watch', function (t) {
 
   // give time for duplicates to arrive if there are any
   setTimeout(function () {
-    t.ok(createdActions.newwatch)
-    t.ok(createdActions.readseal)
+    t.deepEquals(createdActions, {
+      newwatch: true,
+      readseal: true
+    })
 
     sealwatch.stop()
     if (network.api.close) network.api.close()
@@ -152,11 +154,11 @@ test('batch', function (t) {
   // const bob = helpers.dummyIdentity(authorLink)
   // const bobKey = protocol.genECKey()
   const changes = helpers.nextFeed()
-  const actions = Actions({ changes: changes })
+  const actions = Actions({ changes })
 
   const transactor = helpers.transactor(bob)
   const watchDB = createWatchDB({
-    changes: changes,
+    changes,
     db: helpers.nextDB(),
     keeper: keeper
   })

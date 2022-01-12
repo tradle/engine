@@ -1,7 +1,7 @@
 
 const once = require('once')
 const networkName = 'rinkeby'
-const Wallet = require('ethereumjs-wallet')
+const Wallet = require('@tradle/ethereumjs-wallet')
 const constants = require('@tradle/ethereum-adapter/networks')[networkName]
 const port = 28532
 const Network = require('@tradle/ethereum-adapter')
@@ -24,7 +24,7 @@ module.exports = {
 }
 
 function createTransactor ({ privateKey }) {
-  privateKey = new Buffer(privateKey.priv, 'hex')
+  privateKey = Buffer.from(privateKey.priv, 'hex')
   const wallet = Wallet.fromPrivateKey(privateKey)
   const engine = Network.createEngine({
     privateKey,
