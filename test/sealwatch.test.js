@@ -152,11 +152,11 @@ test('batch', function (t) {
   // const bob = helpers.dummyIdentity(authorLink)
   // const bobKey = protocol.genECKey()
   const changes = helpers.nextFeed()
-  const actions = Actions({ changes: changes })
+  const actions = Actions({ changes })
 
   const transactor = helpers.transactor(bob)
   const watchDB = createWatchDB({
-    changes: changes,
+    changes,
     db: helpers.nextDB(),
     keeper: keeper
   })
