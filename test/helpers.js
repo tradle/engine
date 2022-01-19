@@ -1,7 +1,7 @@
 const crypto = require('crypto')
 const deepEqual = require('deep-equal')
 const LEVELDOWN = require('memdown')
-const changesFeed = require('changes-feed')
+const changesFeed = require('@tradle/changes-feed')
 const async = require('async')
 const randomName = require('random-name')
 

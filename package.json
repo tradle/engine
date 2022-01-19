@@ -20,11 +20,11 @@
   "license": "GPLv3",
   "dependencies": {
     "@tradle/bitcoinjs-lib": "^1.6.0",
+    "@tradle/changes-feed": "^1.1.1",
     "@tradle/constants": "^2.3.2",
     "async": "^3.2.3",
     "backoff": "^2.5.0",
     "bs58check": "^1.0.8",
-    "changes-feed": "mvayngrib/changes-feed",
     "clone": "^2.0.0",
     "debug": "^2.2.0",
     "deep-equal": "^1.0.1",
