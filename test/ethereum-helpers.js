@@ -17,6 +17,7 @@ const network = Network.createNetwork({
 
 module.exports = {
   network,
+  networkName,
   constants,
   port,
   transactor: createTransactor,

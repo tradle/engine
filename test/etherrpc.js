@@ -25,12 +25,17 @@ function startServer () {
   const npid = require('npid')
   const pid = npid.create(`${__dirname}/etherrpc.js.pid`)
   pid.removeOnExit()
-  const TestRPC = require('ganache-core')
+  const TestRPC = require('ganache')
   const users = require('./fixtures/users')
   const { blocktime } = require('./constants')
-  const { network, constants, port } = require('./ethereum-helpers')
+  const { network, constants, port, networkName } = require('./ethereum-helpers')
   const server = TestRPC.server({
-    networkId: constants.chainId,
+    chain: {
+      chainId: constants.chainId
+    },
+    fork: {
+      network: networkName
+    },
     blocktime: blocktime / 1000,
     accounts: users.map(user => {
       const key = user.keys.find(key => key.networkName === network.name && key.purpose === 'messaging')
@@ -42,7 +47,7 @@ function startServer () {
   })
 
   server.listen(port, function (err) {
-    console.log(`Listening ganache server at http://localhost:${port} in pid ${process.pid}`)
+    console.log(`Listening ganache server for chainId=${constants.chainId} at http://localhost:${port} with pid ${process.pid}`)
     if (err) throw err
   })
 }
