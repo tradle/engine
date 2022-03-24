@@ -1,34 +1,19 @@
 
-const tradle = module.exports = exports
-// tradle.keeper = require('./lib/keeper')
-tradle.protocol = require('@tradle/protocol')
-tradle.sender = require('./lib/sender')
-tradle.sealer = require('./lib/sealer')
-tradle.sealwatch = require('./lib/sealwatch')
-tradle.dbs = {
-  objects: require('./lib/dbs/objects'),
-  // tx: require('./lib/dbs/txs'),
-  seals: require('./lib/dbs/seals'),
-  watches: require('./lib/dbs/watches'),
-  addressBook: require('./lib/dbs/addressBook'),
-  simpleCustom: require('./lib/dbs/simpleCustom'),
-  msgMeta: require('./lib/dbs/msgMeta'),
+module.exports = {
+  constants: require('./lib/constants.js'),
+  dbs: require('./lib/dbs/index.js'),
+  errors: require('./lib/errors.js'),
+  node: require('./lib/node.js'),
+  partial: require('./lib/partial.js'),
+  protocol: require('@tradle/protocol'),
+  protobuf: require('./lib/proto.js'),
+  retrystream: require('./lib/retrystream.js'),
+  sender: require('./lib/sender.js'),
+  sealer: require('./lib/sealer.js'),
+  sealwatch: require('./lib/sealwatch.js'),
+  topics: require('./lib/topics.js'),
+  typeforce: require('./lib/typeforce.js'),
+  types: require('./lib/types.js'),
+  utils: require('./lib/utils.js'),
+  validator: require('./lib/validator.js')
 }
-
-tradle.retrystream = require('./lib/retrystream')
-tradle.validator = require('./lib/validator')
-tradle.types = require('./lib/types')
-tradle.utils = require('./lib/utils')
-tradle.constants = require('./lib/constants')
-// tradle.constants = {
-//   status: require('./lib/status'),
-//   topics: require('./lib/topics')
-// }
-
-tradle.topics = require('./lib/topics')
-tradle.protobuf = require('./lib/proto')
-tradle.node = require('./lib/node')
-tradle.partial = require('./lib/partial')
-
-tradle.typeforce = require('./lib/typeforce')
-tradle.errors = require('./lib/errors')
