@@ -1,0 +1,73 @@
+syntax = "proto3";
+import "node_modules/@tradle/protocol/lib/schema.proto";
+
+message Message {
+  required bytes object = 1;
+  required bytes _author = 2; // AUTHOR
+  required bytes _recipient = 3; // RECIPIENT
+  required ECSignature _s = 4; // SIG
+  optional bytes _q = 5; // PREV_TO_RECIPIENT
+  optional uint32 _n = 6; // SEQ
+  optional bytes other = 7;
+  optional Seal seal = 8;
+  optional uint64 time = 9;
+}
+
+enum Network {
+  none = 1;
+  btcmain = 2;
+  btctest = 3;
+  ethmain = 4;
+  ethropsten = 5;
+  ethmorden = 6;
+  ethrinkeby = 7;
+}
+
+message Seal {
+  required string network = 1;
+  // presumably all keys on a network
+  // are homogenous (e.g. have the save curve for elliptic curve based networks)
+  required bytes basePubKey = 2;
+  required bytes link = 3;
+  required string blockchain = 4;
+  required bytes headerHash = 5;
+}
+
+enum KeyType {
+  bitcoin = 1;
+  ec = 2;
+  dsa = 3;
+  ethereum  = 4;
+}
+
+enum ECurve {
+  none = 1;
+  ed25519 = 2;
+  secp256k1 = 3;
+  p256 = 4;
+  curve25519 = 5;
+}
+
+enum KeyPurpose {
+  payment = 1;
+  sign = 2;
+  update = 3;
+  messaging = 4;
+  tls = 5;
+}
+
+message PubKey {
+  required KeyType type = 1;
+  required KeyPurpose purpose = 2;
+  required bytes pub = 3;
+  optional ECurve curve = 4 [default = none];
+  optional Network network = 5 [default = none];
+  optional bytes fingerprint = 6;
+}
+
+message Identity {
+  required bytes _s = 1; // SIG
+  optional bytes _p = 2; // PREVLINK
+  optional bytes _r = 3; // PERMALINK
+  repeated PubKey pubkeys = 4;
+}
