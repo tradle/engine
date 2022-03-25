@@ -1,15 +1,17 @@
 const crypto = require('crypto')
 const Wallet = require('@tradle/simple-wallet')
 const bitcoin = require('@tradle/bitcoinjs-lib')
-const typeforce = require('typeforce')
+const typeforce = require('@tradle/typeforce')
 const utils = require('@tradle/utils')
 const { testnet } = require('@tradle/bitcoin-adapter')
 
+const walletOpts = typeforce.object({
+  unspents: 'Array',
+  network: 'Object'
+})
+
 module.exports = function (options) {
-  typeforce({
-    unspents: 'Array',
-    network: 'Object'
-  }, options)
+  walletOpts.assert(options)
 
   const { network } = options
   const walletUnspents = options.unspents

@@ -12,7 +12,7 @@ module.exports = {
   sealer: require('./lib/sealer.js'),
   sealwatch: require('./lib/sealwatch.js'),
   topics: require('./lib/topics.js'),
-  typeforce: require('./lib/typeforce.js'),
+  typeforce: require('@tradle/typeforce'),
   types: require('./lib/types.js'),
   utils: require('./lib/utils.js'),
   validator: require('./lib/validator.js')

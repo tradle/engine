@@ -2,17 +2,19 @@ const { EventEmitter } = require('events')
 const crypto = require('crypto')
 const Wallet = require('@tradle/simple-wallet')
 const bitcoin = require('@tradle/bitcoinjs-lib')
-const typeforce = require('typeforce')
+const typeforce = require('@tradle/typeforce')
 const { testnet } = require('@tradle/bitcoin-adapter')
 const utils = require('../lib/utils')
 const constants = require('./constants')
 
+const fakeBitcoinBlockchainOpts = typeforce.object({
+  unspents: 'Array',
+  network: 'Object',
+  blocktime: '?Number'
+})
+
 module.exports = function fakeBitcoinBlockchain (opts) {
-  typeforce({
-    unspents: 'Array',
-    network: 'Object',
-    blocktime: '?Number'
-  }, opts)
+  fakeBitcoinBlockchainOpts.assert(opts)
 
   const { network, blocktime=constants.blocktime } = opts
   const unspents = []

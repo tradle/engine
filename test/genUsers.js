@@ -2,7 +2,7 @@
 
 const fs = require('fs')
 const path = require('path')
-const typeforce = require('typeforce')
+const typeforce = require('@tradle/typeforce')
 const utils = require('../lib/utils')
 const { genUsers } = require('./helpers')
 // const NONCE = constants.NONCE
@@ -14,12 +14,13 @@ const argv = require('minimist')(process.argv.slice(2), {
 })
 
 writeUsersFile(argv)
+const writeUsersFileOpts = typeforce.compile({
+  file: 'String',
+  number: 'Number'
+})
 
 function writeUsersFile (opts) {
-  typeforce({
-    file: 'String',
-    number: 'Number'
-  }, opts)
+  writeUsersFileOpts.assert(opts)
 
   const { number, file } = opts
   genUsers(number, function (err, results) {
