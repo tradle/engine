@@ -1,7 +1,6 @@
 require('./env')
 
 const test = require('tape')
-const levelErrors = require('level-errors')
 const validator = require('../lib/validator')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
@@ -14,7 +13,6 @@ test('validator', function (t) {
     if (err) throw err
 
     const sender = context.sender
-    const receiver = context.receiver
     const validate = validator(sender).validate
     const object = context.object
     const wrapper = context.sent
@@ -46,28 +44,4 @@ test('validator', function (t) {
       })
     })
   })
-
-  //   const existingObjectLink = 'abc'
-  //   const node = {
-  //     addressBook: {
-  //       byLink: function (link, cb) {
-  //         process.nextTick(function () {
-  //           if (link === existingObjectLink) {
-  //             cb(null, {
-  //               object: existingObject
-  //             })
-  //           } else {
-  //             cb(new utils.notFoundErr())
-  //           }
-  //         })
-  //       }
-  //     },
-  //     objects: {
-  //       get: function (link, cb) {
-  //         process.nextTick(function () {
-  //         })
-  //       }
-  //     }
-  //   }
-  // })
 })

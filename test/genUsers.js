@@ -3,9 +3,7 @@
 const fs = require('fs')
 const path = require('path')
 const typeforce = require('@tradle/typeforce')
-const utils = require('../lib/utils')
 const { genUsers } = require('./helpers')
-// const NONCE = constants.NONCE
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     f: 'file',

@@ -1,61 +1,36 @@
 require('./env')
 
-// const WHY = require('why-is-node-running')
-const path = require('path')
 const { EventEmitter } = require('events')
 const deepEqual = require('deep-equal')
 const test = require('tape')
-const memdown = require('memdown')
 const async = require('async')
 const collect = require('stream-collector')
 const Cache = require('lru-cache')
-const Wallet = require('@tradle/simple-wallet')
-const testHelpers = require('@tradle/test-helpers')
-// const kiki = require('@tradle/kiki')
 const protocol = require('@tradle/protocol')
 const {
-  PREVLINK,
-  PERMALINK,
-  AUTHOR,
   SEQ,
-  SIG,
-  TYPE,
-  TYPES,
+  TYPE
 } = require('@tradle/constants')
 const defaults = require('../lib/defaults')
 const utils = require('../lib/utils')
 const helpers = require('./helpers')
 const contexts = require('./contexts')
-const Node = require('../lib/node')
 const createSealer = require('../lib/sealer')
 const createSender = require('../lib/sender')
 const createMsgMetaDB = require('../lib/dbs/msgMeta')
-const constants = require('../lib/constants')
 const Partial = require('../lib/partial')
 const Errors = require('../lib/errors')
 const users = require('./fixtures/users')
 
-const MESSAGE_TYPE = TYPES.MESSAGE
 const retrystream = require('../lib/retrystream')
 const SHORT_BACKOFF_OPTS = {
   initialDelay: 10,
   maxDelay: 1000
 }
 
-const LONG_BACKOFF_OPTS = {
-  initialDelay: 60 * 1000 * 1000, // foreverish
-  maxDelay: 60 * 1000 * 1000 * 1000
-}
-
-const { blocktime } = helpers
-
 retrystream.DEFAULT_BACKOFF_OPTS =
 createSender.DEFAULT_BACKOFF_OPTS =
 createSealer.DEFAULT_BACKOFF_OPTS = SHORT_BACKOFF_OPTS
-
-const names = helpers.names
-const noop = () => {}
-let INSTANCE_COUNT = 0
 
 test('self in address book', function (t) {
   // TODO: should be stricter
@@ -117,12 +92,6 @@ test('`createObject`', function (t) {
       t.end()
     })
   })
-
-  // alice.createObject({ object: utils.clone(object) }, err => {
-  //   t.ok(err)
-  //   t.equal(err.type, 'saving')
-  //   // t.equal(err.type, 'exists')
-  // })
 })
 
 test('`saveObject`', function (t) {
@@ -142,15 +111,10 @@ test('`saveObject`', function (t) {
         t.equal(result.author, alice.permalink)
         t.end()
         friends.forEach(friend => friend.destroy())
-        // t.equal(err.type, 'exists')
       })
     })
   })
 })
-
-// test('unchained self', function (t) {
-
-// })
 
 test('basic send/receive', function (t) {
   contexts.twoFriends(function (err, friends) {
@@ -173,12 +137,6 @@ test('basic send/receive', function (t) {
         cb.apply(null, arguments)
       })
     }
-
-    // setTimeout(function () {
-    //   alice.addressBook.createReadStream()
-    //     .on('data', console.log)
-    //     // .on('end', console.log)
-    // }, 200)
 
     const obj = {
       [TYPE]: 'thang',
@@ -277,7 +235,6 @@ test('do receive messages carrying already known objects', function (t) {
 })
 
 test('watch txId', function (t) {
-  // t.timeoutAfter(blocktime * 10)
   contexts.twoFriendsSentReceived(function (err, context) {
     if (err) throw err
 
@@ -287,9 +244,6 @@ test('watch txId', function (t) {
       object: sent.object,
       basePubKey: sealer.chainPubKey
     }, rethrow)
-
-    // alice.seal(result.sent, rethrow)
-    // bob.seal(result.message, rethrow)
 
     sealer.once('wroteseal', seal => {
       watcher.watchSeal({
@@ -316,7 +270,6 @@ test('watch txId', function (t) {
 })
 
 test('sender seals', function (t) {
-  // t.timeoutAfter(blocktime * 10)
   contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
     if (err) throw err
 
@@ -336,7 +289,6 @@ test('sender seals', function (t) {
 })
 
 test('receiver seals', function (t) {
-  // t.timeoutAfter(blocktime * 10)
   contexts.twoFriendsSentReceivedSealed({ sealer: 'receiver' }, function (err, context) {
     if (err) throw err
 
@@ -356,9 +308,7 @@ test('receiver seals', function (t) {
 })
 
 test('`readseal` emitted once', function (t) {
-  // t.timeoutAfter(5000)
   contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {
-    const dude = context.sender
     context.friends.forEach(node => node.on('readseal', t.fail))
     async.each(context.friends, function iterator (node, done) {
       node.sync(function () {
@@ -376,7 +326,6 @@ test('`readseal` emitted once', function (t) {
 
 if (helpers.network.blockchain !== 'ethereum') {
   test('detect next version', function (t) {
-    // t.timeoutAfter(1000)
     let v1 = {
       [TYPE]: 'blah',
       a: 1
@@ -396,7 +345,6 @@ if (helpers.network.blockchain !== 'ethereum') {
         if (err) throw err
 
         v2 = result.object // signed
-        // utils.logify(utils, 'pubKeyToAddress', true)
         let seal
         newSealer.seal({ object: v2 }, rethrow)
         newSealer.on('wroteseal', _seal => seal = _seal)
@@ -493,7 +441,7 @@ test('delete watch after X confirmed', function (t) {
   contexts.twoFriendsSentReceivedSealed({ sealer: 'receiver' }, function (err, context) {
     if (err) throw err
 
-    const { sender, receiver, friends } = context
+    const { sender, friends } = context
 
     async.parallel(friends.map(node => {
       return function (cb) {
@@ -726,7 +674,7 @@ test('messagesWithObject', function (t) {
         taskCB => alice.send({ object, to: bob._recipientOpts }, taskCB),
         taskCB => bob.send({ object, to: carol._recipientOpts }, taskCB),
         taskCB => carol.send({ object, to: alice._recipientOpts }, taskCB)
-      ], function (err, results) {
+      ], function (err) {
         if (err) throw err
 
         // send same object
@@ -735,7 +683,7 @@ test('messagesWithObject', function (t) {
     })
 
     let togo = 2
-    bob.on('message', msg => {
+    bob.on('message', () => {
       if (--togo) return
 
       async.parallel([
@@ -833,20 +781,6 @@ test('custom merkle', function (t) {
     }, rethrow)
   })
 })
-
-// test.only('keeper missing file', function (t) {
-//   contexts.twoFriendsSentReceived(function (err, context) {
-//     if (err) throw err
-
-//     context.sender.keeper.del(context.message.link, err => {
-//       context.sender.objects.lastMessage({ to: context.receiver.permalink }, err => {
-//         t.ok(err)
-//         t.end()
-//         context.destroy()
-//       })
-//     })
-//   })
-// })
 
 test('versioning can only be done by previous author', function (t) {
   contexts.twoFriendsSentReceivedSealed({ sealer: 'sender' }, function (err, context) {

@@ -1,11 +1,7 @@
-const Wallet = require('@tradle/simple-wallet')
-const fakeWallet = require('./wallet')
 const network = require('@tradle/bitcoin-adapter').testnet
 const users = require('./fixtures/users')
 const fakeChain = require('./bitcoin-fakechain')
 const utils = require('../lib/utils')
-
-const { createBlockchainAPI } = network
 
 let api
 network.createBlockchainAPI = opts => {
@@ -21,14 +17,8 @@ exports.transactor = function ({ privateKey }) {
 
   if (!api) api = exports.createAPI()
 
-  const wallet = new Wallet({
-    networkName: network.name,
-    blockchain: api,
-    priv: privateKey
-  })
 
   const transactor = network.createTransactor({ privateKey, api })
-  // const transactor = Wallet.transactor({ wallet })
   transactor.api = api
   transactor.network = network
   return transactor

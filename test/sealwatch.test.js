@@ -3,21 +3,11 @@ require('./env')
 const test = require('tape')
 const async = require('async')
 const protocol = require('@tradle/protocol')
-// const network = require('@tradle/bitcoin-adapter').testnet
-// const createChainTracker = require('chain-tracker')
 const constants = require('../lib/constants')
 const watchTypes = constants.watchType
-const PERMALINK = constants.PERMALINK
-const PREVLINK = constants.PREVLINK
-const LINK = constants.LINK
 const TYPE = constants.TYPE
-const MESSAGE_TYPE = constants.TYPES.MESSAGE
-const SIG = constants.SIG
 const createSealWatch = require('../lib/sealwatch')
 const createWatchDB = require('../lib/dbs/watches')
-const topics = require('../lib/topics')
-const statuses = require('../lib/status')
-const createSealer = require('../lib/sealer')
 const utils = require('../lib/utils')
 const Actions = require('../lib/actions')
 const helpers = require('./helpers')
@@ -32,10 +22,6 @@ test('watch', function (t) {
     prop: 'val'
   }
 
-  // protocol.sign({ object: obj, }, function (err, obj) {
-
-  // })
-
   const permalink = 'a1'
   const link = permalink
   const headerHash = 'b1'
@@ -47,14 +33,9 @@ test('watch', function (t) {
   const batch = utils.mapToBatch(keyToVal)
   keeper.batch(batch)
 
-  const alice = 'alice'
-  const authorLink = 'bob'
-  // const networkName = 'testnet'
   const changes = helpers.nextFeed()
   const actions = Actions({ changes })
 
-  // const bob = helpers.dummyIdentity(authorLink)
-  // const bobKey = protocol.genECKey()
   const bob = users[0]
   const transactor = helpers.transactor({ keys: bob.keys })
 
@@ -66,7 +47,6 @@ test('watch', function (t) {
 
   const sealwatch = createSealWatch({
     actions,
-    // chaintracker: chaintracker,
     getBlockchainAdapter: () => network,
     db: helpers.nextDB(),
     watches: watchDB,
@@ -92,7 +72,6 @@ test('watch', function (t) {
     watchType: watchTypes.thisVersion
   })
 
-  // const sealPrevPubKey = protocol.genECKey()
   transactor.send({
     to: [
       {
@@ -140,19 +119,11 @@ test('batch', function (t) {
     }
   })
 
-  // protocol.sign({ object: obj, }, function (err, obj) {
-
-  // })
-
   const keeper = helpers.nextDB()
   const batch = utils.mapToBatch(keyToVal)
   keeper.batch(batch)
 
-  const alice = 'alice'
-  const authorLink = 'bob'
   const bob = users[0]
-  // const bob = helpers.dummyIdentity(authorLink)
-  // const bobKey = protocol.genECKey()
   const changes = helpers.nextFeed()
   const actions = Actions({ changes })
 
@@ -165,7 +136,6 @@ test('batch', function (t) {
 
   const sealwatch = createSealWatch({
     actions,
-    // chaintracker: chaintracker,
     getBlockchainAdapter: () => network,
     db: helpers.nextDB(),
     watches: watchDB,
@@ -180,7 +150,6 @@ test('batch', function (t) {
   sealwatch.start()
 
   const { api } = network
-  const txs = api.addresses.transactions
   let total = 0
   api.addresses.transactions = function (txs, cb) {
     t.ok(txs.length <= 5)
@@ -210,7 +179,6 @@ test('batch', function (t) {
       watchType: watchTypes.thisVersion
     }, rethrow)
 
-    // const sealPrevPubKey = protocol.genECKey()
     transactor.send({
       to: [
         {

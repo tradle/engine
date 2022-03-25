@@ -1,5 +1,3 @@
-
-const once = require('once')
 const networkName = 'rinkeby'
 const Wallet = require('@tradle/ethereumjs-wallet')
 const constants = require('@tradle/ethereum-adapter/networks')[networkName]

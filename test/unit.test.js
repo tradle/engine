@@ -2,9 +2,6 @@ require('./env')
 
 const test = require('tape')
 const backoff = require('backoff')
-const memdown = require('memdown')
-const levelup = require('levelup')
-const subdown = require('subleveldown')
 const Readable = require('readable-stream').Readable
 const collect = require('stream-collector')
 const protocol = require('@tradle/protocol')
@@ -13,13 +10,10 @@ const createRetryStream = require('../lib/retrystream')
 const utils = require('../lib/utils')
 const network = require('@tradle/bitcoin-adapter').testnet
 const Partial = require('../lib/partial')
-const users = require('./fixtures/users')
 const {
   TYPE,
   SIG,
-  AUTHOR,
-  VERSION,
-  TIMESTAMP
+  AUTHOR
 } = require('../lib/constants')
 
 test('merge streams', function (t) {
@@ -54,62 +48,6 @@ test('pub key to address', function (t) {
   t.equal(network.pubKeyToAddress(pub), 'muZH3FNp1836Eyxc966NnfWwe79TnUhuFi')
   t.end()
 })
-
-// test('codecs', function (t) {
-//   const top = levelup('top', {
-//     db: memdown,
-//     valueEncoding: 'json'
-//   })
-
-//   const utf8 = subdown(top, 'a', {
-//     valueEncoding: 'utf8'
-//   })
-
-//   const binary = subdown(top, 'b', {
-//     valueEncoding: 'binary'
-//   })
-
-//   const custom = subdown(top, 'c', {
-//     valueEncoding: {
-//       encode: function (value) {
-//         return 'blah'
-//       },
-//       decode: function (value) {
-//         return 'habla'
-//       }
-//     }
-//   })
-
-//   const rawBatch = [
-//     {
-//       type: 'put',
-//       key: 'top',
-//       value: 'json'
-//     },
-//     {
-//       type: 'del',
-//       key: 'utf8',
-//       value: 'utf8',
-//       db: utf8
-//     },
-//     {
-//       type: 'put',
-//       key: 'binary',
-//       value: 'binary',
-//       db: binary
-//     },
-//     {
-//       type: 'put',
-//       key: 'custom',
-//       value: 'custom',
-//       db: custom
-//     }
-//   ];
-
-//   const encoded = utils.encodeBatch(rawBatch)
-//   console.log(encoded)
-//   t.end()
-// })
 
 test('queue', function (t) {
   let jobsRunning = 0
@@ -170,20 +108,6 @@ test('queue', function (t) {
     // test duplicates
     jobs.forEach(job => input.push(job))
   }
-
-  // jobs.forEach(function (job, idx) {
-  //   // each job may be queued multiple times
-  //   // but shouldn't be executed multiple times
-  //   for (var i = 0; i < timesQueued; i++) {
-  //     (function () {
-  //       q.push(job.id, job.data, function (err, val) {
-  //         t.equal(val, job.data)
-  //         t.equal(job.data.tries, 0)
-  //         t.equal(job.data.timesExecuted, 1)
-  //       })
-  //     })()
-  //   }
-  // })
 })
 
 test('pause queue', function (t) {
@@ -392,21 +316,6 @@ test('controls when extending another instance', function (t) {
   t.end()
 })
 
-// test('identity serialization', function (t) {
-//   users.slice(0, 1).forEach(u => {
-//     const identity = u.identity
-//     identity.pubkeys.forEach(function (p) {
-//       const deserialized = utils.deserializePubKey(utils.serializePubKey(p))
-//       t.same(deserialized, p)
-//     })
-
-//     const deserialized = utils.deserializeIdentity(utils.serializeIdentity(identity))
-//     t.same(deserialized, identity)
-//   })
-
-//   t.end()
-// })
-
 test('partials', function (t) {
   const obj = protocol.object({
     object: {
@@ -447,65 +356,3 @@ test('partials', function (t) {
 
   t.end()
 })
-
-// test('queue', function (t) {
-//   let jobsRunning = 0
-//   const jobs = [
-//     { tries: 2 },
-//     { tries: 5 },
-//     { tries: 1 },
-//     { tries: 4 }
-//   ].map(function (data, i) {
-//     data.timesExecuted = 0
-//     return {
-//       id: i,
-//       data: data
-//     }
-//   })
-
-//   const total = jobs.reduce(function (sum, job) {
-//     return sum + job.data.tries
-//   }, 0)
-
-//   let timesQueued = 3
-//   t.plan(total + jobs.length * 3 * timesQueued)
-
-//   const worker = function (data, cb) {
-//     t.equal(jobsRunning++, 0)
-//     setTimeout(function () {
-//       jobsRunning--
-//       data.tries--
-//       if (data.tries < 0) throw new Error('too many tries')
-
-//       if (data.tries === 0) {
-//         data.timesExecuted++
-//         cb(null, data)
-//       }
-//       else {
-//         cb(new Error('boo'))
-//       }
-//     }, 10)
-//   }
-
-//   const q = createRetryStream({
-//     worker: worker,
-//     backoff: backoff.exponential({
-//       initialDelay: 10,
-//       maxDelay: 100
-//     })
-//   })
-
-//   jobs.forEach(function (job, idx) {
-//     // each job may be queued multiple times
-//     // but shouldn't be executed multiple times
-//     for (var i = 0; i < timesQueued; i++) {
-//       (function () {
-//         q.push(job.id, job.data, function (err, val) {
-//           t.equal(val, job.data)
-//           t.equal(job.data.tries, 0)
-//           t.equal(job.data.timesExecuted, 1)
-//         })
-//       })()
-//     }
-//   })
-// })

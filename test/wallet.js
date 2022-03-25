@@ -2,8 +2,6 @@ const crypto = require('crypto')
 const Wallet = require('@tradle/simple-wallet')
 const bitcoin = require('@tradle/bitcoinjs-lib')
 const typeforce = require('@tradle/typeforce')
-const utils = require('@tradle/utils')
-const { testnet } = require('@tradle/bitcoin-adapter')
 
 const walletOpts = typeforce.object({
   unspents: 'Array',
@@ -15,9 +13,6 @@ module.exports = function (options) {
 
   const { network } = options
   const walletUnspents = options.unspents
-  const total = walletUnspents.reduce(function (sum, n) {
-    return sum + n
-  }, 0)
 
   let { priv } = options
   if (typeof priv === 'string') {
@@ -133,16 +128,7 @@ function createFakeChain ({ network, unspents }) {
         process.nextTick(function () {
           cb(null, unspents)
         })
-      },
-      // summary: function (addrs, cb) {
-      //   process.nextTick(function () {
-      //     cb(null, addrs.map(function (a) {
-      //       return {
-      //         balance: total
-      //       }
-      //     }))
-      //   })
-      // }
+      }
     },
     transactions: {
       get: function (txIds, cb) {

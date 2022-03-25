@@ -1,17 +1,12 @@
-const crypto = require('crypto')
 const deepEqual = require('deep-equal')
 const LEVELDOWN = require('memdown')
 const changesFeed = require('@tradle/changes-feed')
 const async = require('async')
 const randomName = require('random-name')
 
-// const network = require('@tradle/bitcoin-adapter').testnet
-// const kiki = require('@tradle/kiki')
-// const nkey = require('nkey-ec')
 const utils = require('../lib/utils')
 const constants = require('../lib/constants')
 const Node = require('../lib/node')
-// const { testnet } = require('../lib/networks/bitcoin')
 const names = [
   'alice', 'bob', 'carol',
   'david', 'eve', 'falstaff',
@@ -28,7 +23,7 @@ const networkHelpers = BLOCKCHAIN === 'bitcoin'
   : require('./ethereum-helpers')
 
 const { blocktime } = require('./constants')
-const { network } = networkHelpers
+const { network, transactor, createAPI } = networkHelpers
 const helpers = exports
 const noop = function () {}
 let dbCounter = 0
@@ -85,19 +80,6 @@ exports.connect = function connect (nodes) {
   })
 }
 
-// exports.connect = function connect (people) {
-//   helpers.eachOther(people, function receiveOnSend (a, b) {
-//     var aInfo = { link: a.identityInfo.link }
-//     a._send = function (msg, recipient, cb) {
-//       b.receive(msg, aInfo, function (err) {
-//         if (err) throw err
-
-//         cb.apply(null, arguments)
-//       })
-//     }
-//   })
-// }
-
 exports.meet = function meet (people, cb) {
   helpers.eachOther(people, function meet (a, b, done) {
     a.addContact(b.identity, done)
@@ -138,7 +120,6 @@ exports.transactor = function ({ keys }) {
 exports.createAPI = networkHelpers.createAPI
 exports.network = networkHelpers.network
 exports.blocktime = blocktime
-// exports.mintBlocks = networkHelpers.mintBlocks
 
 exports.createNode = function createNode (opts) {
   let {
@@ -149,7 +130,6 @@ exports.createNode = function createNode (opts) {
 
   const blockchainAdapter = opts.network || network
   const keeper = opts.keeper || helpers.keeper()
-  const privateKey = utils.chainKey(opts.keys, blockchainAdapter).privKeyString
   const transactor = opts.transactor || helpers.transactor({ keys })
   const dir = opts.dir || helpers.nextDir()
   opts = utils.extend(opts, {

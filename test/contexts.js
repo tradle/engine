@@ -7,7 +7,6 @@ const helpers = require('./helpers')
 const contexts = exports
 
 exports.nUsers = function nUsers (n) {
-  let blockchainReader
   if (users.length < n) throw new Error('not enough users in fixtures')
   if (helpers.names.length < n) throw new Error('not enough names in fixtures')
 
@@ -49,14 +48,12 @@ exports.twoFriendsSentReceived = function (object, cb) {
     b: 2
   }
 
-  let blockchain
   contexts.twoFriends(function (err, friends) {
     if (err) return cb(err)
 
     const sender = friends[0]
     const receiver = friends[1]
     const aInfo = { permalink: sender.identityInfo.permalink }
-    let numTries = 0
 
     sender._send = function (msg, recipient, cb) {
       receiver.receive(msg.object, aInfo, function (err) {
@@ -109,16 +106,12 @@ exports.twoFriendsSentReceivedSealed = function (opts, cb) {
     const alice = friends[0]
     const bob = friends[1]
 
-    // console.log(result.sent)
     const sealer = opts.sealer === 'sender' ? alice : bob
     const auditor = sealer === alice ? bob : alice
     sealer.seal({
       object: result.sent.object,
       basePubKey: sealer.chainPubKey
     }, rethrow)
-
-    // alice.seal(result.sent, rethrow)
-    // bob.seal(result.message, rethrow)
 
     sealer.once('wroteseal', seal => {
       result.wroteseal = seal

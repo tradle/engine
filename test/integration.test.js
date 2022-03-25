@@ -1,6 +1,5 @@
 require('./env')
 
-// const WHY = require('why-is-node-running')
 const test = require('tape')
 const Sendy = require('sendy')
 const SendyWS = require('sendy-ws')
@@ -9,9 +8,6 @@ const AxolotlClient = require('sendy-axolotl')
 const memdown = require('memdown')
 const WebSocketClient = SendyWS.Client
 const createSwitchboard = SendyWS.Switchboard
-// const OTRClient = require('sendy-otr')
-// const nkey = require('nkey')
-// const nkeyEC = require('nkey-ec')
 const createKeeper = require('@tradle/keeper')
 const constants = require('../lib/constants')
 const TYPE = constants.TYPE
@@ -20,7 +16,6 @@ const helpers = require('./helpers')
 const contexts = require('./contexts')
 
 const SENDY_OPTS = { resendInterval: 1000, autoConnect: true }
-// const newOTRSwitchboard = require('sendy-otr-ws').Switchboard
 
 test('sendy', function (t) {
   t.timeoutAfter(60000)
@@ -73,13 +68,7 @@ test('sendy', function (t) {
         throw new Error('recipient not found')
       })
 
-      transport.on('message', function (msg, from) {
-        // const pubKey = {
-        //   type: 'ec',
-        //   curve: 'curve25519',
-        //   pub: Buffer.from(from, 'hex')
-        // }
-
+      transport.on('message', function (msg) {
         node.receive(JSON.parse(msg), { permalink: other.permalink }, rethrow)
       })
 

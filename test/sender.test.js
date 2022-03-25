@@ -2,13 +2,9 @@ require('./env')
 
 const test = require('tape')
 const async = require('async')
-const createBackoff = require('backoff')
 const protocol = require('@tradle/protocol')
 const constants = require('../lib/constants')
 const {
-  PERMALINK,
-  PREVLINK,
-  LINK,
   TYPE,
   SIG,
   SEQ,
@@ -18,20 +14,16 @@ const {
   TIMESTAMP,
 } = constants
 const MESSAGE_TYPE = TYPES.MESSAGE
-const topics = require('../lib/topics')
 const statuses = require('../lib/status')
 const createObjectDB = require('../lib/dbs/objects')
 const createSender = require('../lib/sender')
 const utils = require('../lib/utils')
 const createActions = require('../lib/actions')
 const helpers = require('./helpers')
-const users = require('./fixtures/users')
 
 test('try again', function (t) {
   t.plan(13)
 
-  const aliceKey = protocol.genECKey()
-  const alicePubKey = utils.omit(aliceKey, 'priv')
   const bobKey = protocol.genECKey()
   const bobPubKey = utils.omit(bobKey, 'priv')
   const authorLink = 'bbbb'
@@ -100,7 +92,6 @@ test('try again', function (t) {
   let unsent = []
   async.each(objs, create, start)
 
-  // const unsent = batch.map(row => row.value).filter(val => val[TYPE] === MESSAGE_TYPE)
   let failuresToGo = 3
   const sender = createSender({
     name: 'sender',
@@ -198,7 +189,3 @@ test('try again', function (t) {
     })
   }
 })
-
-function rethrow (err) {
-  if (err) throw err
-}

@@ -1,9 +1,7 @@
 const { EventEmitter } = require('events')
 const crypto = require('crypto')
-const Wallet = require('@tradle/simple-wallet')
 const bitcoin = require('@tradle/bitcoinjs-lib')
 const typeforce = require('@tradle/typeforce')
-const { testnet } = require('@tradle/bitcoin-adapter')
 const utils = require('../lib/utils')
 const constants = require('./constants')
 
@@ -110,7 +108,6 @@ function createFakeChain ({ network, unspents, blocktime }) {
             }))
           }, [])
 
-          // console.log(txs.length, addrs, Object.keys(ADDR_CACHE))
           if (!txs.length) return cb(null, [])
 
           cb(null, txs.map(function (tx) {
@@ -128,16 +125,7 @@ function createFakeChain ({ network, unspents, blocktime }) {
         process.nextTick(function () {
           cb(null, unspents.filter(unspent => unspent.address === addr))
         })
-      },
-      // summary: function (addrs, cb) {
-      //   process.nextTick(function () {
-      //     cb(null, addrs.map(function (a) {
-      //       return {
-      //         balance: total
-      //       }
-      //     }))
-      //   })
-      // }
+      }
     },
     transactions: {
       get: function (txIds, cb) {
@@ -153,8 +141,7 @@ function createFakeChain ({ network, unspents, blocktime }) {
               txId: tx.getId(),
               txHex: tx.toHex(),
               blockId: tx.block.getId(),
-              blockHeight: tx.block.blockHeight,
-              // confirmations: blocks.length - tx.block.blockHeight - 1
+              blockHeight: tx.block.blockHeight
             }
           })
 
