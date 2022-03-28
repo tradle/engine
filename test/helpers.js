@@ -104,21 +104,25 @@ exports.userToOpts = function userToOpts (user, name) {
 }
 
 exports.transactor = function ({ keys }) {
-  let privateKey
-  keys.some(key => {
+  const privateKey = keys.find(key => {
     const json = key.toJSON ? key.toJSON(true) : key
-    if (json.purpose === 'messaging' &&
-      json.type === network.blockchain &&
-      json.networkName === network.name) {
-      return privateKey = json
+    if (json.purpose !== 'messaging') {
+      return false
     }
+    if (json.type !== network.blockchain) {
+      return false
+    }
+    if (json.networkName !== network.name) {
+      return false
+    }
+    return true
   })
 
-  return networkHelpers.transactor({ privateKey })
+  return transactor({ privateKey })
 }
 
-exports.createAPI = networkHelpers.createAPI
-exports.network = networkHelpers.network
+exports.createAPI = createAPI
+exports.network = network
 exports.blocktime = blocktime
 
 exports.createNode = function createNode (opts) {
