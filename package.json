@@ -72,7 +72,7 @@
     "nkey-bitcoin": "^1.2.0",
     "nkey-curve25519": "^1.0.1",
     "nkey-ecdsa": "^1.0.1",
-    "nkey-ethereum": "^1.0.1",
+    "nkey-ethereum": "^1.1.0",
     "npid": "^0.4.0",
     "protocol-buffers": "^5.0.0",
     "random-name": "^0.1.1",
@@ -82,7 +82,7 @@
     "sendy-ws": "^1.2.4",
     "sendy-ws-relay": "^1.1.3",
     "tap": "^15.1.6",
-    "tape": "^5.4.0"
+    "tape": "^5.5.2"
   },
   "peerDependencies": {
     "@tradle/protocol": ">4 <6"
